@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from openweather._logging import get_logger
 from openweather.cache import Cache, build_cache_key
