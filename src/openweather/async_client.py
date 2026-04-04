@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 
+from openweather._base import _BaseClient, parse_forecast, parse_locations, parse_weather
 from openweather._endpoints import (
     CURRENT_WEATHER_URL,
     FORECAST_URL,
@@ -12,15 +13,13 @@ from openweather._endpoints import (
     build_weather_params,
 )
 from openweather._http import request_async
-from openweather._logging import get_logger
-from openweather.client import _parse_forecast, _parse_locations, _parse_weather
 from openweather.models.common import CacheConfig, RetryConfig, Units
 from openweather.models.forecast import Forecast
 from openweather.models.location import Location
 from openweather.models.weather import Weather
 
 
-class AsyncOpenWeatherClient:
+class AsyncOpenWeatherClient(_BaseClient):
     """Asynchronous client for the OpenWeather API.
 
     Provides async methods to fetch current weather, forecasts, and geocoding
@@ -47,20 +46,14 @@ class AsyncOpenWeatherClient:
             timeout: HTTP request timeout in seconds.
             retry: Optional retry configuration. Uses defaults if ``None``.
         """
-        self._api_key = api_key
-        self._units = units
-        self._language = language
-        self._cache_config = cache
-        self._cache: Any = None
-        if cache and cache.enabled:
-            from openweather.cache import Cache
-
-            self._cache = Cache(
-                max_entries=cache.max_entries, default_ttl=cache.ttl
-            )
-        self._retry = retry or RetryConfig()
-        self._logger = get_logger(api_key)
+        super().__init__(api_key, units=units, language=language, cache=cache, retry=retry)
         self._client = httpx.AsyncClient(timeout=timeout)
+
+    async def _request(self, url: str, params: dict[str, Any]) -> Any:
+        return await request_async(
+            self._client, url, params,
+            api_key=self._api_key, retry=self._retry, logger=self._logger,
+        )
 
     async def get_current_weather(
         self,
@@ -76,9 +69,6 @@ class AsyncOpenWeatherClient:
     ) -> Weather:
         """Fetch current weather for a location.
 
-        Provide exactly one location identifier (city name, city ID,
-        coordinates, or zip code).
-
         Args:
             city: City name, optionally with country code (e.g. ``"London,GB"``).
             city_id: OpenWeather city ID.
@@ -92,52 +82,15 @@ class AsyncOpenWeatherClient:
         Returns:
             A ``Weather`` object with current conditions.
         """
-        effective_units = units or self._units
-        effective_lang = language or self._language
-        url = CURRENT_WEATHER_URL
         params = build_weather_params(
-            self._api_key,
-            units=effective_units.value,
-            lang=effective_lang,
-            city=city,
-            city_id=city_id,
-            lat=lat,
-            lon=lon,
-            zip_code=zip_code,
+            self._api_key, units=(units or self._units).value, lang=language or self._language,
+            city=city, city_id=city_id, lat=lat, lon=lon, zip_code=zip_code,
         )
-
-        cache_key = None
-        if self._cache and not skip_cache:
-            from openweather.cache import build_cache_key
-
-            cache_key = build_cache_key(
-                "weather",
-                **{k: v for k, v in params.items() if k != "appid"},
-            )
-            cached = self._cache.get(cache_key)
-            if cached is not None:
-                self._logger.debug("Cache hit: %s", cache_key)
-                return cached  # type: ignore[return-value]
-
-        data = await request_async(
-            self._client,
-            url,
-            params,
-            api_key=self._api_key,
-            retry=self._retry,
-            logger=self._logger,
-        )
-        result = _parse_weather(data)
-
-        if self._cache:
-            from openweather.cache import build_cache_key
-
-            key = cache_key or build_cache_key(
-                "weather",
-                **{k: v for k, v in params.items() if k != "appid"},
-            )
-            self._cache.set(key, result)
-
+        key, cached = self._check_cache("weather", params, skip_cache)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+        result = parse_weather(await self._request(CURRENT_WEATHER_URL, params))
+        self._store_cache(key, result)
         return result
 
     async def get_forecast(
@@ -155,9 +108,6 @@ class AsyncOpenWeatherClient:
     ) -> Forecast:
         """Fetch a 5-day / 3-hour forecast for a location.
 
-        Provide exactly one location identifier (city name, city ID,
-        coordinates, or zip code).
-
         Args:
             city: City name, optionally with country code.
             city_id: OpenWeather city ID.
@@ -172,53 +122,15 @@ class AsyncOpenWeatherClient:
         Returns:
             A ``Forecast`` containing the location and a list of forecast entries.
         """
-        effective_units = units or self._units
-        effective_lang = language or self._language
-        url = FORECAST_URL
         params = build_weather_params(
-            self._api_key,
-            units=effective_units.value,
-            lang=effective_lang,
-            city=city,
-            city_id=city_id,
-            lat=lat,
-            lon=lon,
-            zip_code=zip_code,
-            cnt=count,
+            self._api_key, units=(units or self._units).value, lang=language or self._language,
+            city=city, city_id=city_id, lat=lat, lon=lon, zip_code=zip_code, cnt=count,
         )
-
-        cache_key = None
-        if self._cache and not skip_cache:
-            from openweather.cache import build_cache_key
-
-            cache_key = build_cache_key(
-                "forecast",
-                **{k: v for k, v in params.items() if k != "appid"},
-            )
-            cached = self._cache.get(cache_key)
-            if cached is not None:
-                self._logger.debug("Cache hit: %s", cache_key)
-                return cached  # type: ignore[return-value]
-
-        data = await request_async(
-            self._client,
-            url,
-            params,
-            api_key=self._api_key,
-            retry=self._retry,
-            logger=self._logger,
-        )
-        result = _parse_forecast(data)
-
-        if self._cache:
-            from openweather.cache import build_cache_key
-
-            key = cache_key or build_cache_key(
-                "forecast",
-                **{k: v for k, v in params.items() if k != "appid"},
-            )
-            self._cache.set(key, result)
-
+        key, cached = self._check_cache("forecast", params, skip_cache)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+        result = parse_forecast(await self._request(FORECAST_URL, params))
+        self._store_cache(key, result)
         return result
 
     async def geocode(self, city: str, *, limit: int = 5) -> list[Location]:
@@ -231,25 +143,10 @@ class AsyncOpenWeatherClient:
         Returns:
             A list of matching ``Location`` objects.
         """
-        url = GEOCODE_DIRECT_URL
-        params: dict[str, Any] = {
-            "appid": self._api_key,
-            "q": city,
-            "limit": limit,
-        }
-        data = await request_async(
-            self._client,
-            url,
-            params,
-            api_key=self._api_key,
-            retry=self._retry,
-            logger=self._logger,
-        )
-        return _parse_locations(data)
+        params: dict[str, Any] = {"appid": self._api_key, "q": city, "limit": limit}
+        return parse_locations(await self._request(GEOCODE_DIRECT_URL, params))
 
-    async def reverse_geocode(
-        self, lat: float, lon: float, *, limit: int = 5
-    ) -> list[Location]:
+    async def reverse_geocode(self, lat: float, lon: float, *, limit: int = 5) -> list[Location]:
         """Convert geographic coordinates to location names.
 
         Args:
@@ -260,22 +157,8 @@ class AsyncOpenWeatherClient:
         Returns:
             A list of matching ``Location`` objects.
         """
-        url = GEOCODE_REVERSE_URL
-        params: dict[str, Any] = {
-            "appid": self._api_key,
-            "lat": lat,
-            "lon": lon,
-            "limit": limit,
-        }
-        data = await request_async(
-            self._client,
-            url,
-            params,
-            api_key=self._api_key,
-            retry=self._retry,
-            logger=self._logger,
-        )
-        return _parse_locations(data)
+        params: dict[str, Any] = {"appid": self._api_key, "lat": lat, "lon": lon, "limit": limit}
+        return parse_locations(await self._request(GEOCODE_REVERSE_URL, params))
 
     async def close(self) -> None:
         """Close the underlying HTTP client and release resources."""
