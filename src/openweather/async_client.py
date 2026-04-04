@@ -5,11 +5,11 @@ from typing import Any
 import httpx
 
 from openweather._endpoints import (
+    CURRENT_WEATHER_URL,
+    FORECAST_URL,
+    GEOCODE_DIRECT_URL,
+    GEOCODE_REVERSE_URL,
     build_weather_params,
-    current_weather_url,
-    forecast_url,
-    geocode_direct_url,
-    geocode_reverse_url,
 )
 from openweather._http import request_async
 from openweather._logging import get_logger
@@ -94,7 +94,7 @@ class AsyncOpenWeatherClient:
         """
         effective_units = units or self._units
         effective_lang = language or self._language
-        url = current_weather_url()
+        url = CURRENT_WEATHER_URL
         params = build_weather_params(
             self._api_key,
             units=effective_units.value,
@@ -174,7 +174,7 @@ class AsyncOpenWeatherClient:
         """
         effective_units = units or self._units
         effective_lang = language or self._language
-        url = forecast_url()
+        url = FORECAST_URL
         params = build_weather_params(
             self._api_key,
             units=effective_units.value,
@@ -231,7 +231,7 @@ class AsyncOpenWeatherClient:
         Returns:
             A list of matching ``Location`` objects.
         """
-        url = geocode_direct_url()
+        url = GEOCODE_DIRECT_URL
         params: dict[str, Any] = {
             "appid": self._api_key,
             "q": city,
@@ -260,7 +260,7 @@ class AsyncOpenWeatherClient:
         Returns:
             A list of matching ``Location`` objects.
         """
-        url = geocode_reverse_url()
+        url = GEOCODE_REVERSE_URL
         params: dict[str, Any] = {
             "appid": self._api_key,
             "lat": lat,

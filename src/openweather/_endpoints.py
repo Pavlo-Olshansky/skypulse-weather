@@ -14,20 +14,10 @@ def _build_params(api_key: str, **kwargs: Any) -> dict[str, Any]:
     return params
 
 
-def current_weather_url() -> str:
-    return f"{WEATHER_BASE}/weather"
-
-
-def forecast_url() -> str:
-    return f"{WEATHER_BASE}/forecast"
-
-
-def geocode_direct_url() -> str:
-    return f"{GEO_BASE}/direct"
-
-
-def geocode_reverse_url() -> str:
-    return f"{GEO_BASE}/reverse"
+CURRENT_WEATHER_URL = f"{WEATHER_BASE}/weather"
+FORECAST_URL = f"{WEATHER_BASE}/forecast"
+GEOCODE_DIRECT_URL = f"{GEO_BASE}/direct"
+GEOCODE_REVERSE_URL = f"{GEO_BASE}/reverse"
 
 
 def build_location_params(

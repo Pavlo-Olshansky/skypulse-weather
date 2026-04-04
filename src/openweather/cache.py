@@ -35,13 +35,9 @@ class Cache:
         with self._lock:
             return self._store.get(key)
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+    def set(self, key: str, value: Any) -> None:
+        """Store a value, evicting the least-recently-used entry if full."""
         with self._lock:
-            if ttl is not None and ttl != self._default_ttl:
-                # For custom TTL, store with a manual expiry marker.
-                # TTLCache uses a single TTL, so we rely on the default.
-                # For per-key TTL, evict and re-insert won't help — just use default.
-                pass
             self._store[key] = value
 
     def invalidate(self, key: str) -> bool:
