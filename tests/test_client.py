@@ -10,7 +10,7 @@ import respx
 
 from openweather.client import OpenWeatherClient
 from openweather.errors import AuthenticationError, NotFoundError
-from openweather.models.common import RetryConfig, Units
+from openweather.models.common import CacheConfig, RetryConfig, Units
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"
@@ -251,4 +251,75 @@ def test_geocode_limit_parameter() -> None:
 
     req = respx.calls[0].request
     assert "limit=1" in str(req.url)
+    client.close()
+
+
+
+
+@respx.mock
+def test_cache_hit_skips_network() -> None:
+    route = respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=True, ttl=300),
+        retry=RetryConfig(enabled=False),
+    )
+    w1 = client.get_current_weather(city="London")
+    w2 = client.get_current_weather(city="London")
+
+    assert w1.temperature == w2.temperature
+    assert route.call_count == 1  # only one network call
+    client.close()
+
+
+@respx.mock
+def test_cache_disabled_always_fetches() -> None:
+    route = respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=False),
+        retry=RetryConfig(enabled=False),
+    )
+    client.get_current_weather(city="London")
+    client.get_current_weather(city="London")
+
+    assert route.call_count == 2
+    client.close()
+
+
+@respx.mock
+def test_cache_skip_cache_flag() -> None:
+    route = respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=True, ttl=300),
+        retry=RetryConfig(enabled=False),
+    )
+    client.get_current_weather(city="London")
+    client.get_current_weather(city="London", skip_cache=True)
+
+    assert route.call_count == 2
+    client.close()
+
+
+@respx.mock
+def test_cache_different_params_different_keys() -> None:
+    route = respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=True, ttl=300),
+        retry=RetryConfig(enabled=False),
+    )
+    client.get_current_weather(city="London", units=Units.METRIC)
+    client.get_current_weather(city="London", units=Units.IMPERIAL)
+
+    assert route.call_count == 2  # different cache keys
     client.close()
