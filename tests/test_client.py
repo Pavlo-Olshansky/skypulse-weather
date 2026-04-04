@@ -136,3 +136,119 @@ def test_client_context_manager() -> None:
     with OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False)) as client:
         weather = client.get_current_weather(city="London")
         assert weather.location.name == "London"
+
+
+
+
+@respx.mock
+def test_get_forecast_by_city() -> None:
+    respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    forecast = client.get_forecast(city="London")
+
+    assert forecast.location.name == "London"
+    assert len(forecast.entries) == 3
+    assert forecast.entries[0].temperature == 14.5
+    client.close()
+
+
+@respx.mock
+def test_get_forecast_count_parameter() -> None:
+    respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    forecast = client.get_forecast(city="London", count=3)
+
+    req = respx.calls[0].request
+    assert "cnt=3" in str(req.url)
+    assert len(forecast.entries) == 3
+    client.close()
+
+
+@respx.mock
+def test_get_forecast_imperial_units() -> None:
+    respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client.get_forecast(city="London", units=Units.IMPERIAL)
+
+    req = respx.calls[0].request
+    assert "units=imperial" in str(req.url)
+    client.close()
+
+
+@respx.mock
+def test_get_forecast_entries_ordered() -> None:
+    respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    forecast = client.get_forecast(city="London")
+
+    timestamps = [e.forecast_at for e in forecast.entries]
+    assert timestamps == sorted(timestamps)
+    assert len(set(timestamps)) == len(timestamps)
+    client.close()
+
+
+
+
+@respx.mock
+def test_geocode_direct() -> None:
+    respx.get(GEO_DIRECT_URL).mock(
+        return_value=httpx.Response(200, json=_load("geocoding_direct.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    locations = client.geocode("London")
+
+    assert len(locations) == 2
+    assert locations[0].name == "London"
+    assert locations[0].country == "GB"
+    assert locations[0].latitude == 51.5085
+    assert locations[0].state == "England"
+    client.close()
+
+
+@respx.mock
+def test_geocode_reverse() -> None:
+    respx.get(GEO_REVERSE_URL).mock(
+        return_value=httpx.Response(200, json=_load("geocoding_reverse.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    locations = client.reverse_geocode(lat=51.5085, lon=-0.1257)
+
+    assert len(locations) == 1
+    assert locations[0].name == "London"
+    client.close()
+
+
+@respx.mock
+def test_geocode_multiple_results() -> None:
+    respx.get(GEO_DIRECT_URL).mock(
+        return_value=httpx.Response(200, json=_load("geocoding_direct.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    locations = client.geocode("London")
+
+    assert len(locations) == 2
+    countries = {loc.country for loc in locations}
+    assert "GB" in countries
+    assert "CA" in countries
+    client.close()
+
+
+@respx.mock
+def test_geocode_limit_parameter() -> None:
+    respx.get(GEO_DIRECT_URL).mock(
+        return_value=httpx.Response(200, json=_load("geocoding_direct.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client.geocode("London", limit=1)
+
+    req = respx.calls[0].request
+    assert "limit=1" in str(req.url)
+    client.close()
