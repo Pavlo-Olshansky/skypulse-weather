@@ -9,7 +9,13 @@ import pytest
 import respx
 
 from openweather.client import OpenWeatherClient
-from openweather.errors import AuthenticationError, NotFoundError
+from openweather.errors import (
+    AuthenticationError,
+    NotFoundError,
+    ParseError,
+    RateLimitError,
+    ServerError,
+)
 from openweather.models.common import CacheConfig, RetryConfig, Units
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -322,4 +328,62 @@ def test_cache_different_params_different_keys() -> None:
     client.get_current_weather(city="London", units=Units.IMPERIAL)
 
     assert route.call_count == 2  # different cache keys
+    client.close()
+
+
+
+
+@respx.mock
+def test_rate_limit_error_with_retry_after() -> None:
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(
+            429,
+            json=_load("error_responses/429_rate_limit.json"),
+            headers={"Retry-After": "30"},
+        )
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(RateLimitError) as exc_info:
+        client.get_current_weather(city="London")
+    assert exc_info.value.retry_after == 30
+    assert exc_info.value.status_code == 429
+    client.close()
+
+
+@respx.mock
+def test_server_error_5xx() -> None:
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(500, json=_load("error_responses/500_server_error.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(ServerError) as exc_info:
+        client.get_current_weather(city="London")
+    assert exc_info.value.status_code == 500
+    client.close()
+
+
+@respx.mock
+def test_parse_error_malformed_json() -> None:
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, text="<html>not json</html>")
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(ParseError):
+        client.get_current_weather(city="London")
+    client.close()
+
+
+@respx.mock
+def test_error_carries_context_fields() -> None:
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(404, json=_load("error_responses/404_not_found.json"))
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(NotFoundError) as exc_info:
+        client.get_current_weather(city="Atlantis")
+    err = exc_info.value
+    assert err.endpoint is not None
+    assert err.params is not None
+    assert "appid" not in err.params  # redacted from safe_params
+    assert err.status_code == 404
     client.close()
