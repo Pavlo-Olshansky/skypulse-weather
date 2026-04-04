@@ -98,7 +98,11 @@ class TimeoutError(OpenWeatherError):
 
 
 class ParseError(OpenWeatherError):
-    """Response body could not be parsed as expected."""
+    """Response body could not be parsed as expected.
+
+    Attributes:
+        raw_body: First 500 characters of the unparseable response body.
+    """
 
     def __init__(self, raw_body: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
