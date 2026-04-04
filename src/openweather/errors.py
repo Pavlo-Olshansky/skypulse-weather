@@ -16,6 +16,11 @@ def _redact_params(params: dict[str, Any] | None, api_key: str | None) -> dict[s
 
 
 class OpenWeatherError(Exception):
+    """Base exception for all OpenWeather client errors.
+
+    API keys are automatically redacted from messages and representations.
+    """
+
     def __init__(
         self,
         message: str,
@@ -25,6 +30,15 @@ class OpenWeatherError(Exception):
         params: dict[str, Any] | None = None,
         api_key: str | None = None,
     ) -> None:
+        """Initialize the error.
+
+        Args:
+            message: Human-readable error description.
+            status_code: HTTP status code, if applicable.
+            endpoint: The API endpoint that was called.
+            params: Query parameters sent with the request (keys are redacted).
+            api_key: API key used for redaction (never stored in plain text).
+        """
         self.message = _redact_key(message, api_key)
         self.status_code = status_code
         self.endpoint = endpoint
@@ -52,7 +66,11 @@ class NotFoundError(APIError):
 
 
 class RateLimitError(APIError):
-    """429 - Rate limit exceeded."""
+    """429 - Rate limit exceeded.
+
+    Attributes:
+        retry_after: Seconds to wait before retrying.
+    """
 
     def __init__(self, retry_after: int = 0, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -68,7 +86,11 @@ class NetworkError(OpenWeatherError):
 
 
 class TimeoutError(OpenWeatherError):
-    """Request exceeded configured timeout."""
+    """Request exceeded configured timeout.
+
+    Attributes:
+        timeout: The timeout value in seconds that was exceeded.
+    """
 
     def __init__(self, timeout: float = 0.0, **kwargs: Any) -> None:
         super().__init__(**kwargs)

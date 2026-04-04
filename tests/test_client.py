@@ -10,11 +10,14 @@ import respx
 
 from openweather.client import OpenWeatherClient
 from openweather.errors import (
+    APIError,
     AuthenticationError,
+    NetworkError,
     NotFoundError,
     ParseError,
     RateLimitError,
     ServerError,
+    TimeoutError,
 )
 from openweather.models.common import CacheConfig, RetryConfig, Units
 
@@ -386,4 +389,67 @@ def test_error_carries_context_fields() -> None:
     assert err.params is not None
     assert "appid" not in err.params  # redacted from safe_params
     assert err.status_code == 404
+    client.close()
+
+
+@respx.mock
+def test_generic_api_error() -> None:
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(403, json={"cod": 403, "message": "Forbidden"})
+    )
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(APIError) as exc_info:
+        client.get_current_weather(city="London")
+    assert exc_info.value.status_code == 403
+    client.close()
+
+
+@respx.mock
+def test_network_error() -> None:
+    respx.get(WEATHER_URL).mock(side_effect=httpx.ConnectError("Connection refused"))
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(NetworkError):
+        client.get_current_weather(city="London")
+    client.close()
+
+
+@respx.mock
+def test_timeout_error() -> None:
+    respx.get(WEATHER_URL).mock(side_effect=httpx.ReadTimeout("Timed out"))
+    client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with pytest.raises(TimeoutError):
+        client.get_current_weather(city="London")
+    client.close()
+
+
+@respx.mock
+def test_forecast_cache_hit() -> None:
+    route = respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=True, ttl=300),
+        retry=RetryConfig(enabled=False),
+    )
+    f1 = client.get_forecast(city="London")
+    f2 = client.get_forecast(city="London")
+    assert len(f1.entries) == len(f2.entries)
+    assert route.call_count == 1
+    client.close()
+
+
+@respx.mock
+def test_forecast_skip_cache() -> None:
+    route = respx.get(FORECAST_URL).mock(
+        return_value=httpx.Response(200, json=_load("forecast.json"))
+    )
+    client = OpenWeatherClient(
+        API_KEY,
+        cache=CacheConfig(enabled=True, ttl=300),
+        retry=RetryConfig(enabled=False),
+    )
+    client.get_forecast(city="London")
+    client.get_forecast(city="London", skip_cache=True)
+    assert route.call_count == 2
     client.close()
