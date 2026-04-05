@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from datetime import datetime
 from typing import Any
@@ -92,6 +93,7 @@ class AsyncUVTransport:
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
         self._cache: dict[str, _StaleEntry] = {}
+        self._locks: dict[str, asyncio.Lock] = {}
 
     async def fetch(self, lat: float, lon: float, language: str = "en") -> dict[str, Any]:
         cache_key = f"{lat:.2f},{lon:.2f}"
@@ -99,30 +101,38 @@ class AsyncUVTransport:
         if cached and cached.is_fresh(UV_CACHE_TTL):
             return cached.data  # type: ignore[return-value]
 
-        try:
-            resp = await self._client.get(
-                UV_INDEX_API_URL,
-                params={"latitude": lat, "longitude": lon},
-            )
-            if resp.status_code == 429:
-                raise RateLimitError(status_code=429, message="UV Index API rate limit exceeded (500/day)")
-            if resp.status_code != 200:
-                raise httpx.HTTPStatusError(
-                    f"UV API returned {resp.status_code}",
-                    request=resp.request,
-                    response=resp,
+        if cache_key not in self._locks:
+            self._locks[cache_key] = asyncio.Lock()
+
+        async with self._locks[cache_key]:
+            cached = self._cache.get(cache_key)
+            if cached and cached.is_fresh(UV_CACHE_TTL):
+                return cached.data  # type: ignore[return-value]
+
+            try:
+                resp = await self._client.get(
+                    UV_INDEX_API_URL,
+                    params={"latitude": lat, "longitude": lon},
                 )
-            data = resp.json()
-        except (RateLimitError, ParseError):
-            raise
-        except Exception as exc:
-            raise ServiceUnavailableError("CurrentUVIndex", str(exc)) from exc
+                if resp.status_code == 429:
+                    raise RateLimitError(status_code=429, message="UV Index API rate limit exceeded (500/day)")
+                if resp.status_code != 200:
+                    raise httpx.HTTPStatusError(
+                        f"UV API returned {resp.status_code}",
+                        request=resp.request,
+                        response=resp,
+                    )
+                data = resp.json()
+            except (RateLimitError, ParseError):
+                raise
+            except Exception as exc:
+                raise ServiceUnavailableError("CurrentUVIndex", str(exc)) from exc
 
-        if not data.get("ok"):
-            raise ServiceUnavailableError("CurrentUVIndex", data.get("message", "Unknown error"))
+            if not data.get("ok"):
+                raise ServiceUnavailableError("CurrentUVIndex", data.get("message", "Unknown error"))
 
-        self._cache[cache_key] = _StaleEntry(data, time.monotonic())
-        return data
+            self._cache[cache_key] = _StaleEntry(data, time.monotonic())
+            return data
 
     async def get_current(self, lat: float, lon: float, language: str = "en") -> UVIndex:
         data = await self.fetch(lat, lon, language)

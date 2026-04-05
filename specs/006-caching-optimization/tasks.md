@@ -25,10 +25,10 @@
 
 ## Phase 3: UV Fetch Deduplication
 
-- [ ] [T015] Add `self._locks: dict[str, asyncio.Lock]` to `AsyncUVTransport.__init__` in `src/skypulse/_uv.py`
-- [ ] [T016] Wrap the HTTP-fetch section of `AsyncUVTransport.fetch()` with a per-cache-key `asyncio.Lock` — check cache again after acquiring lock (double-check pattern)
-- [ ] [T017] Add test to `tests/test_uv_index.py`: launch `get_uv_index()` + `get_uv_forecast()` concurrently via `asyncio.gather`, assert exactly 1 HTTP request to `currentuvindex.com` (via `respx` call count)
-- [ ] [T018] Add test for lock cleanup: verify that locks for expired cache keys don't accumulate unboundedly (optional: clean locks when cache entry expires)
+- [x] [T015] Add `self._locks: dict[str, asyncio.Lock]` to `AsyncUVTransport.__init__` in `src/skypulse/_uv.py`
+- [x] [T016] Wrap the HTTP-fetch section of `AsyncUVTransport.fetch()` with a per-cache-key `asyncio.Lock` — check cache again after acquiring lock (double-check pattern)
+- [x] [T017] Add test to `tests/test_uv_index.py`: launch `get_uv_index()` + `get_uv_forecast()` concurrently via `asyncio.gather`, assert exactly 1 HTTP request to `currentuvindex.com` (via `respx` call count)
+- [x] [T018] Add test for lock cleanup: verify that locks for expired cache keys don't accumulate unboundedly (optional: clean locks when cache entry expires)
 
 ## Phase 4: Polish
 

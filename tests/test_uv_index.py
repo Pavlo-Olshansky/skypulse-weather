@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import timezone
 
 import pytest
 import respx
 
-from skypulse import SkyPulseClient, UVIndex, UVForecastEntry, RateLimitError, ServiceUnavailableError
+from skypulse import AsyncSkyPulseClient, SkyPulseClient, UVIndex, UVForecastEntry, RateLimitError, ServiceUnavailableError
 from skypulse._constants import UV_INDEX_API_URL
+from skypulse._uv import AsyncUVTransport
 from tests.conftest import load_fixture
 
 
@@ -96,3 +98,32 @@ class TestGetUVForecast:
         for i in range(len(forecast) - 1):
             assert forecast[i].forecast_at <= forecast[i + 1].forecast_at
         client.close()
+
+
+class TestAsyncUVDeduplication:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_concurrent_uv_single_request(self, api_key: str) -> None:
+        fixture = load_fixture("uv_current.json")
+        route = respx.get(UV_INDEX_API_URL).respond(json=fixture)
+
+        async with AsyncSkyPulseClient(api_key=api_key) as client:
+            uv_index, uv_forecast = await asyncio.gather(
+                client.get_uv_index(lat=50.45, lon=30.52),
+                client.get_uv_forecast(lat=50.45, lon=30.52),
+            )
+
+        assert isinstance(uv_index, UVIndex)
+        assert len(uv_forecast) == 4
+        assert route.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_locks_created_per_key(self, api_key: str) -> None:
+        fixture = load_fixture("uv_current.json")
+        respx.get(UV_INDEX_API_URL).respond(json=fixture)
+
+        async with AsyncSkyPulseClient(api_key=api_key) as client:
+            await client.get_uv_index(lat=50.45, lon=30.52)
+            await client.get_uv_index(lat=60.00, lon=25.00)
+            assert len(client._uv._locks) == 2
