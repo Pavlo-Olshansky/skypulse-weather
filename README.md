@@ -12,6 +12,10 @@ Weather, space weather, and how they affect you — Python SDK with sync/async s
 - **Storm alerts** — location-aware alerts with aurora visibility prediction
 - **Auto-location** — IP-based geolocation for hands-free weather and storm queries
 - **Error hierarchy** — distinct exceptions for auth, rate limit, not found, timeout, network
+- **Air quality** — AQI (1-5), 8 pollutant concentrations, 4-day hourly forecast
+- **UV index** — real-time + 5-day forecast from CurrentUVIndex (no extra API key)
+- **Circadian light** — day length, effective light hours, quality rating for wellness apps
+- **Translation** — all labels available in English and Ukrainian
 - **Retry with backoff** — automatic retry on 5xx and 429 with exponential backoff
 - **API key redaction** — keys never appear in logs, exceptions, or repr output
 
@@ -307,6 +311,77 @@ client = SkyPulseClient(
 
 Retries on 429 (rate limit), 500, 502, 503 with exponential backoff. Respects `Retry-After` headers.
 
+## Air Quality
+
+```python
+aq = client.get_air_quality(city="Kyiv")
+
+print(aq.aqi)       # 3
+print(aq.label)      # "Moderate"
+print(aq.pm2_5)      # 12.3
+print(aq.o3)         # 62.44
+
+# 4-day hourly forecast
+forecast = client.get_air_quality_forecast(lat=50.45, lon=30.52)
+for entry in forecast:
+    print(f"{entry.measured_at}: AQI {entry.aqi} — {entry.label}")
+    # "2026-04-05 12:00:00+00:00: AQI 2 — Fair"
+```
+
+## UV Index
+
+No API key required — uses [CurrentUVIndex](https://currentuvindex.com) (500 req/day).
+
+```python
+uv = client.get_uv_index(city="Rome")
+
+print(uv.value)       # 6.2
+print(uv.risk_level)  # "high"
+print(uv.risk_label)  # "High"
+
+# 5-day hourly forecast
+forecast = client.get_uv_forecast(lat=50.45, lon=30.52)
+for entry in forecast:
+    print(f"{entry.forecast_at}: UV {entry.value}")
+    # "2026-04-05 13:00:00+00:00: UV 6.5"
+```
+
+## Circadian Light Exposure
+
+Computes natural light exposure from sunrise/sunset and cloud cover (free tier, no extra API).
+
+```python
+light = client.get_circadian_light(city="Lviv")
+
+print(light.day_length_hours)       # 13.25
+print(light.cloud_cover_percent)    # 45
+print(light.effective_light_hours)  # 9.94
+print(light.quality)                # "good"
+print(light.quality_label)          # "Good"
+```
+
+Handles polar extremes: midnight sun returns `"extreme_light"`, polar night returns `"extreme_dark"`.
+
+## Translation (i18n)
+
+All human-readable labels support English and Ukrainian:
+
+```python
+client_uk = SkyPulseClient(api_key="key", language="uk")
+
+aq = client_uk.get_air_quality(city="Kyiv")
+print(aq.label)  # "Помірно"
+
+uv = client_uk.get_uv_index(lat=50.45, lon=30.52)
+print(uv.risk_label)  # "Високий"
+
+storm = client_uk.get_magnetic_storm()
+print(storm.severity)  # "Сильна буря"
+
+light = client_uk.get_circadian_light(city="Lviv")
+print(light.quality_label)  # "Добре"
+```
+
 ## API Coverage
 
 | Source | Endpoint | Method |
@@ -315,11 +390,16 @@ Retries on 429 (rate limit), 500, 502, 503 with exponential backoff. Respects `R
 | OpenWeather | 5-Day Forecast | `get_forecast()` |
 | OpenWeather | Direct Geocoding | `geocode()` |
 | OpenWeather | Reverse Geocoding | `reverse_geocode()` |
+| OpenWeather | Air Pollution | `get_air_quality()` |
+| OpenWeather | Air Pollution Forecast | `get_air_quality_forecast()` |
+| CurrentUVIndex | UV Index | `get_uv_index()` |
+| CurrentUVIndex | UV Forecast | `get_uv_forecast()` |
 | NOAA SWPC | Planetary K-Index | `get_magnetic_storm()` |
 | NOAA SWPC | K-Index Forecast | `get_magnetic_forecast()` |
 | ip-api.com | IP Geolocation | `get_location()` |
 | Derived | Health Impact | `get_storm_health_impact()` |
 | Derived | Storm Alert | `get_storm_alert()` |
+| Derived | Circadian Light | `get_circadian_light()` |
 
 ## Development
 

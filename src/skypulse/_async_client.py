@@ -25,7 +25,6 @@ from skypulse._storm_mapping import (
     classify_latitude_zone,
     get_health_impact,
 )
-from skypulse._translations import get_label
 from skypulse._uv import AsyncUVTransport
 from skypulse.models.air_quality import AirQuality, AirQualityEntry
 from skypulse.models.circadian import CircadianLight
