@@ -6,9 +6,9 @@ from typing import Any
 import httpx
 import respx
 
-from openweather.client import OpenWeatherClient
-from openweather.errors import AuthenticationError, OpenWeatherError
-from openweather.models.common import RetryConfig
+from openweather import OpenWeatherClient
+from openweather import AuthenticationError, OpenWeatherError
+from openweather import RetryConfig
 
 API_KEY = "super-secret-key-xyz"
 WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"

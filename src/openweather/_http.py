@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 
 from openweather._logging import get_logger
-from openweather.errors import (
+from openweather._errors import (
     AuthenticationError,
     NetworkError,
     NotFoundError,
@@ -67,7 +67,7 @@ def _map_error(
         raise RateLimitError(retry_after=retry_after, **common)
     if status_code >= 500:
         raise ServerError(**common)
-    from openweather.errors import APIError
+    from openweather._errors import APIError
     raise APIError(**common)
 
 

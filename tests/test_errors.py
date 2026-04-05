@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from openweather.errors import (
+from openweather._errors import (
     APIError,
     AuthenticationError,
     NetworkError,

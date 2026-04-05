@@ -9,9 +9,9 @@ import httpx
 import pytest
 import respx
 
-from openweather.client import OpenWeatherClient
-from openweather.errors import AuthenticationError, NotFoundError, RateLimitError, ServerError
-from openweather.models.common import RetryConfig
+from openweather import OpenWeatherClient
+from openweather import AuthenticationError, NotFoundError, RateLimitError, ServerError
+from openweather import RetryConfig
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"

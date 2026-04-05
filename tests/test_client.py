@@ -8,8 +8,8 @@ import httpx
 import pytest
 import respx
 
-from openweather.client import OpenWeatherClient
-from openweather.errors import (
+from openweather import OpenWeatherClient
+from openweather import (
     APIError,
     AuthenticationError,
     NetworkError,
@@ -20,7 +20,7 @@ from openweather.errors import (
     ServerError,
     TimeoutError,
 )
-from openweather.models.common import CacheConfig, RetryConfig, Units
+from openweather import CacheConfig, RetryConfig, Units
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"

@@ -9,8 +9,8 @@ import httpx
 import pytest
 import respx
 
-from openweather.async_client import AsyncOpenWeatherClient
-from openweather.models.common import CacheConfig, RetryConfig, Units
+from openweather import AsyncOpenWeatherClient
+from openweather import CacheConfig, RetryConfig, Units
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"

@@ -6,8 +6,8 @@ from typing import Any
 
 from openweather._constants import ENV_API_KEY
 from openweather._logging import get_logger
-from openweather.cache import Cache, build_cache_key
-from openweather.errors import OpenWeatherError
+from openweather._cache import Cache, build_cache_key
+from openweather._errors import OpenWeatherError
 from openweather.models.common import CacheConfig, RetryConfig, Units
 from openweather.models.forecast import Forecast, ForecastEntry
 from openweather.models.location import Location
