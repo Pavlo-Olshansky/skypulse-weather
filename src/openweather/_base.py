@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from openweather._constants import ENV_API_KEY
+from openweather._constants import DEFAULT_GEOLOCATION_URL, ENV_API_KEY
 from openweather._logging import get_logger
 from openweather._cache import Cache, build_cache_key
 from openweather._errors import OpenWeatherError
@@ -106,6 +106,8 @@ class _BaseClient:
         language: str = "en",
         cache: CacheConfig | None = None,
         retry: RetryConfig | None = None,
+        auto_locate: bool = False,
+        geolocation_url: str = DEFAULT_GEOLOCATION_URL,
     ) -> None:
         resolved_key = api_key or os.environ.get(ENV_API_KEY, "").strip()
         if not resolved_key:
@@ -120,6 +122,8 @@ class _BaseClient:
             self._cache = Cache(max_entries=cache.max_entries, default_ttl=cache.ttl)
         self._retry = retry or RetryConfig()
         self._logger = get_logger(api_key)
+        self._auto_locate = auto_locate
+        self._geolocation_url = geolocation_url
 
     def _check_cache(self, cache_prefix: str, params: dict[str, Any], skip_cache: bool) -> tuple[str, Any | None]:
         """Build cache key and check for a hit. Returns (key, cached_value_or_None)."""

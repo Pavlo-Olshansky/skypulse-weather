@@ -11,12 +11,15 @@ from openweather._errors import (
     ParseError,
     RateLimitError,
     ServerError,
+    ServiceUnavailableError,
     TimeoutError,
 )
 from openweather._version import __version__
 from openweather.models.common import CacheConfig, RetryConfig, Units
 from openweather.models.forecast import Forecast, ForecastEntry
+from openweather.models.health import HealthImpact, StormAlert
 from openweather.models.location import Location
+from openweather.models.storm import MagneticForecastEntry, MagneticStorm
 from openweather.models.weather import Condition, Weather, Wind
 
 __all__ = [
@@ -27,7 +30,10 @@ __all__ = [
     "Condition",
     "Forecast",
     "ForecastEntry",
+    "HealthImpact",
     "Location",
+    "MagneticForecastEntry",
+    "MagneticStorm",
     "NetworkError",
     "NotFoundError",
     "OpenWeatherClient",
@@ -36,6 +42,8 @@ __all__ = [
     "RateLimitError",
     "RetryConfig",
     "ServerError",
+    "ServiceUnavailableError",
+    "StormAlert",
     "TimeoutError",
     "Units",
     "Weather",
