@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - 2026-04-05
+
+- Includes CHANGELOG.md in the published package (missing from 2.0.1)
+
 ## [2.0.1] - 2026-04-05
 
 ### Added
