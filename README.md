@@ -1,7 +1,7 @@
 # SkyPulse
 
-[![PyPI](https://img.shields.io/pypi/v/skypulse)](https://pypi.org/project/skypulse/)
-[![Python 3.9-3.14](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/skypulse/)
+[![PyPI](https://img.shields.io/pypi/v/skypulse-weather)](https://pypi.org/project/skypulse-weather/)
+[![Python 3.9-3.14](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/skypulse-weather/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Weather, space weather, and how they affect you — Python SDK with sync/async support, LRU caching, and typed responses.
@@ -26,7 +26,7 @@ Weather, space weather, and how they affect you — Python SDK with sync/async s
 ## Installation
 
 ```bash
-pip install skypulse
+pip install skypulse-weather
 ```
 
 Requires Python 3.9 — 3.14. Dependencies: `httpx`, `cachetools`.
