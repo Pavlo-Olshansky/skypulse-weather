@@ -170,15 +170,37 @@ class AsyncNOAATransport:
         return entries
 
 
-def _parse_current_kp(data: list[list[str]], language: str = "en") -> MagneticStorm:
+def _parse_time(raw: str) -> datetime:
+    """Parse NOAA time strings in both old and new formats."""
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognised time format: {raw}")
+
+
+def _parse_current_kp(data: list, language: str = "en") -> MagneticStorm:
     try:
-        if len(data) < 2:
+        if not data:
             raise ValueError("Empty NOAA response")
         row = data[-1]
-        kp = float(row[2])  # Kp_fraction
-        observed_at = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+
+        # New format: list of dicts with "time_tag", "Kp", "station_count"
+        if isinstance(row, dict):
+            kp = float(row["Kp"])
+            observed_at = _parse_time(row["time_tag"])
+            station_count = int(row.get("station_count", 0))
+        # Legacy format: list of lists ["time", ..., "kp_fraction", ..., "station_count"]
+        else:
+            if len(data) < 2:
+                raise ValueError("Empty NOAA response")
+            row = data[-1]
+            kp = float(row[2])
+            observed_at = _parse_time(row[0])
+            station_count = int(row[4])
+
         g_scale = kp_to_g_scale(kp)
-        station_count = int(row[4])
         return MagneticStorm(
             kp_index=kp,
             g_scale=g_scale,
@@ -189,34 +211,54 @@ def _parse_current_kp(data: list[list[str]], language: str = "en") -> MagneticSt
             stale=False,
             station_count=station_count,
         )
-    except (IndexError, ValueError, TypeError) as exc:
+    except (IndexError, KeyError, ValueError, TypeError) as exc:
         raise ParseError(
             raw_body=str(data)[:500],
             message=f"Failed to parse NOAA Kp data: {exc}",
         ) from exc
 
 
-def _parse_forecast(data: list[list[str]], language: str = "en") -> list[MagneticForecastEntry]:
+def _parse_forecast(data: list, language: str = "en") -> list[MagneticForecastEntry]:
     try:
-        if len(data) < 2:
+        if not data:
             raise ValueError("Empty NOAA forecast response")
         entries = []
-        for row in data[1:]:
-            kp = float(row[1])
-            g_scale = row[3] if len(row) > 3 else kp_to_g_scale(kp)
-            period_start = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-            entries.append(MagneticForecastEntry(
-                predicted_kp=kp,
-                g_scale=g_scale,
-                severity=g_scale_to_severity(g_scale, language),
-                is_storm=is_storm(kp),
-                period_start=period_start,
-                period_end=period_start + timedelta(hours=3),
-                is_observed=row[2] == "observed",
-            ))
+
+        # New format: list of dicts with "time_tag", "kp", "observed", "noaa_scale"
+        if isinstance(data[0], dict):
+            for row in data:
+                kp = float(row["kp"])
+                noaa_scale = row.get("noaa_scale")
+                g_scale = noaa_scale if noaa_scale else kp_to_g_scale(kp)
+                period_start = _parse_time(row["time_tag"])
+                entries.append(MagneticForecastEntry(
+                    predicted_kp=kp,
+                    g_scale=g_scale,
+                    severity=g_scale_to_severity(g_scale, language),
+                    is_storm=is_storm(kp),
+                    period_start=period_start,
+                    period_end=period_start + timedelta(hours=3),
+                    is_observed=row.get("observed") == "observed",
+                ))
+        # Legacy format: list of lists with header row
+        else:
+            for row in data[1:]:
+                kp = float(row[1])
+                g_scale = row[3] if len(row) > 3 else kp_to_g_scale(kp)
+                period_start = _parse_time(row[0])
+                entries.append(MagneticForecastEntry(
+                    predicted_kp=kp,
+                    g_scale=g_scale,
+                    severity=g_scale_to_severity(g_scale, language),
+                    is_storm=is_storm(kp),
+                    period_start=period_start,
+                    period_end=period_start + timedelta(hours=3),
+                    is_observed=row[2] == "observed",
+                ))
+
         entries.sort(key=lambda e: e.period_start)
         return entries
-    except (IndexError, ValueError, TypeError) as exc:
+    except (IndexError, KeyError, ValueError, TypeError) as exc:
         raise ParseError(
             raw_body=str(data)[:500],
             message=f"Failed to parse NOAA forecast data: {exc}",
