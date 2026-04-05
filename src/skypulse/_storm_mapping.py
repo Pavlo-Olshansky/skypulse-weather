@@ -9,55 +9,112 @@ KP_TO_G_SCALE: dict[int, str] = {
     5: "G1", 6: "G2", 7: "G3", 8: "G4", 9: "G5",
 }
 
-G_SCALE_HEALTH: dict[str, dict[str, object]] = {
-    "G0": {
-        "level": "none",
-        "affected_systems": [],
-        "recommendations": ["No health impact expected from current geomagnetic conditions."],
+_HEALTH_I18N: dict[str, dict[str, dict[str, object]]] = {
+    "en": {
+        "G0": {
+            "affected_systems": [],
+            "recommendations": ["No health impact expected from current geomagnetic conditions."],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
+        "G1": {
+            "affected_systems": ["nervous"],
+            "recommendations": [
+                "Sensitive individuals may experience mild headaches or sleep disruption.",
+                "Stay hydrated and maintain regular sleep schedule.",
+            ],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
+        "G2": {
+            "affected_systems": ["cardiovascular", "nervous"],
+            "recommendations": [
+                "Migraine-prone and cardiovascular-sensitive individuals should monitor symptoms.",
+                "Avoid strenuous activity if feeling unwell.",
+            ],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
+        "G3": {
+            "affected_systems": ["cardiovascular", "nervous", "general"],
+            "recommendations": [
+                "Significant health effects possible for sensitive groups.",
+                "Cardiovascular patients should monitor blood pressure.",
+                "Expect possible sleep disruption.",
+            ],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
+        "G4": {
+            "affected_systems": ["cardiovascular", "nervous", "general"],
+            "recommendations": [
+                "Broad population may notice effects.",
+                "Cardiovascular patients should consult doctor if symptomatic.",
+                "Minimize stress and physical exertion.",
+            ],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
+        "G5": {
+            "affected_systems": ["cardiovascular", "nervous", "general"],
+            "recommendations": [
+                "Extreme geomagnetic conditions.",
+                "All sensitive groups should take precautions.",
+                "Seek medical attention for unusual symptoms.",
+            ],
+            "disclaimer": HEALTH_DISCLAIMER,
+        },
     },
-    "G1": {
-        "level": "low",
-        "affected_systems": ["nervous"],
-        "recommendations": [
-            "Sensitive individuals may experience mild headaches or sleep disruption.",
-            "Stay hydrated and maintain regular sleep schedule.",
-        ],
+    "uk": {
+        "G0": {
+            "affected_systems": [],
+            "recommendations": ["Вплив на здоров'я від поточних геомагнітних умов не очікується."],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
+        "G1": {
+            "affected_systems": ["нервова"],
+            "recommendations": [
+                "Чутливі люди можуть відчувати легкий головний біль або порушення сну.",
+                "Пийте достатньо води та дотримуйтесь режиму сну.",
+            ],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
+        "G2": {
+            "affected_systems": ["серцево-судинна", "нервова"],
+            "recommendations": [
+                "Людям, схильним до мігрені та серцево-судинних захворювань, слід стежити за симптомами.",
+                "Уникайте надмірного фізичного навантаження при поганому самопочутті.",
+            ],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
+        "G3": {
+            "affected_systems": ["серцево-судинна", "нервова", "загальний стан"],
+            "recommendations": [
+                "Можливий значний вплив на здоров'я чутливих груп населення.",
+                "Пацієнтам із серцево-судинними захворюваннями слід контролювати тиск.",
+                "Можливі порушення сну.",
+            ],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
+        "G4": {
+            "affected_systems": ["серцево-судинна", "нервова", "загальний стан"],
+            "recommendations": [
+                "Широке населення може відчути вплив.",
+                "Пацієнтам із серцево-судинними захворюваннями слід звернутися до лікаря при появі симптомів.",
+                "Мінімізуйте стрес та фізичне навантаження.",
+            ],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
+        "G5": {
+            "affected_systems": ["серцево-судинна", "нервова", "загальний стан"],
+            "recommendations": [
+                "Екстремальні геомагнітні умови.",
+                "Усім чутливим групам слід вжити запобіжних заходів.",
+                "Зверніться по медичну допомогу при незвичних симптомах.",
+            ],
+            "disclaimer": "Оцінка впливу на здоров'я має інформаційний характер і базується на опублікованих дослідженнях кореляції геомагнітної активності з впливом на здоров'я. Це не є медичною порадою. Зверніться до лікаря з особистих питань здоров'я.",
+        },
     },
-    "G2": {
-        "level": "moderate",
-        "affected_systems": ["cardiovascular", "nervous"],
-        "recommendations": [
-            "Migraine-prone and cardiovascular-sensitive individuals should monitor symptoms.",
-            "Avoid strenuous activity if feeling unwell.",
-        ],
-    },
-    "G3": {
-        "level": "high",
-        "affected_systems": ["cardiovascular", "nervous", "general"],
-        "recommendations": [
-            "Significant health effects possible for sensitive groups.",
-            "Cardiovascular patients should monitor blood pressure.",
-            "Expect possible sleep disruption.",
-        ],
-    },
-    "G4": {
-        "level": "severe",
-        "affected_systems": ["cardiovascular", "nervous", "general"],
-        "recommendations": [
-            "Broad population may notice effects.",
-            "Cardiovascular patients should consult doctor if symptomatic.",
-            "Minimize stress and physical exertion.",
-        ],
-    },
-    "G5": {
-        "level": "severe",
-        "affected_systems": ["cardiovascular", "nervous", "general"],
-        "recommendations": [
-            "Extreme geomagnetic conditions.",
-            "All sensitive groups should take precautions.",
-            "Seek medical attention for unusual symptoms.",
-        ],
-    },
+}
+
+G_SCALE_LEVELS: dict[str, str] = {
+    "G0": "none", "G1": "low", "G2": "moderate",
+    "G3": "high", "G4": "severe", "G5": "severe",
 }
 
 IMPACT_LEVELS = ["none", "low", "moderate", "high", "severe"]
@@ -79,15 +136,17 @@ def is_storm(kp: float) -> bool:
     return kp >= STORM_KP_THRESHOLD
 
 
-def get_health_impact(kp: float, g_scale: str) -> HealthImpact:
-    info = G_SCALE_HEALTH.get(g_scale, G_SCALE_HEALTH["G0"])
+def get_health_impact(kp: float, g_scale: str, language: str = "en") -> HealthImpact:
+    lang_data = _HEALTH_I18N.get(language, _HEALTH_I18N["en"])
+    info = lang_data.get(g_scale, lang_data["G0"])
+    level = G_SCALE_LEVELS.get(g_scale, "none")
     return HealthImpact(
-        level=str(info["level"]),
+        level=get_label("health_level", level, language),
         kp_index=kp,
         g_scale=g_scale,
         affected_systems=list(info["affected_systems"]),  # type: ignore[arg-type]
         recommendations=list(info["recommendations"]),  # type: ignore[arg-type]
-        disclaimer=HEALTH_DISCLAIMER,
+        disclaimer=str(info["disclaimer"]),
     )
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import respx
 
 from skypulse import HealthImpact, SkyPulseClient
-from skypulse._constants import HEALTH_DISCLAIMER, NOAA_KP_CURRENT_URL
+from skypulse._constants import NOAA_KP_CURRENT_URL
 
 
 def _make_noaa_response(kp: float, kp_int: str = "7") -> list:
@@ -22,10 +22,10 @@ class TestGetStormHealthImpact:
         impact = client.get_storm_health_impact()
 
         assert isinstance(impact, HealthImpact)
-        assert impact.level == "none"
+        assert impact.level == "None"
         assert impact.g_scale == "G0"
         assert impact.affected_systems == []
-        assert impact.disclaimer == HEALTH_DISCLAIMER
+        assert impact.disclaimer
         client.close()
 
     @respx.mock
@@ -35,7 +35,7 @@ class TestGetStormHealthImpact:
         client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
-        assert impact.level == "low"
+        assert impact.level == "Low"
         assert impact.g_scale == "G1"
         assert "nervous" in impact.affected_systems
         client.close()
@@ -47,7 +47,7 @@ class TestGetStormHealthImpact:
         client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
-        assert impact.level == "moderate"
+        assert impact.level == "Moderate"
         assert impact.g_scale == "G2"
         assert "cardiovascular" in impact.affected_systems
         assert "nervous" in impact.affected_systems
@@ -60,7 +60,7 @@ class TestGetStormHealthImpact:
         client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
-        assert impact.level == "high"
+        assert impact.level == "High"
         assert impact.g_scale == "G3"
         assert "general" in impact.affected_systems
         client.close()
@@ -72,7 +72,7 @@ class TestGetStormHealthImpact:
         client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
-        assert impact.level == "severe"
+        assert impact.level == "Severe"
         assert impact.g_scale == "G4"
         client.close()
 
@@ -83,7 +83,7 @@ class TestGetStormHealthImpact:
         client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
-        assert impact.level == "severe"
+        assert impact.level == "Severe"
         assert impact.g_scale == "G5"
         client.close()
 
@@ -95,7 +95,7 @@ class TestGetStormHealthImpact:
         impact = client.get_storm_health_impact()
 
         assert impact.disclaimer
-        assert "not medical advice" in impact.disclaimer
+        assert "not medical advice" in impact.disclaimer.lower()
         client.close()
 
     @respx.mock
@@ -107,4 +107,17 @@ class TestGetStormHealthImpact:
 
         assert impact.kp_index == 7.0
         assert impact.g_scale == "G3"
+        client.close()
+
+    @respx.mock
+    def test_ukrainian_language(self, api_key: str) -> None:
+        respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(7.0, "7"))
+
+        client = SkyPulseClient(api_key=api_key, language="uk")
+        impact = client.get_storm_health_impact()
+
+        assert impact.level == "Високий"
+        assert "серцево-судинна" in impact.affected_systems
+        assert any("тиск" in r for r in impact.recommendations)
+        assert "медичною порадою" in impact.disclaimer
         client.close()

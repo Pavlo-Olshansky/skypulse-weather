@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from skypulse._base import _BaseClient, parse_forecast, parse_locations, parse_weather
+from skypulse._cache import build_cache_key
 from skypulse._circadian import compute_circadian_light
 from skypulse._client import _parse_air_quality, _parse_air_quality_forecast
 from skypulse._constants import DEFAULT_GEOLOCATION_URL, DEFAULT_TIMEOUT
@@ -21,10 +22,12 @@ from skypulse._geolocation import AsyncGeoLocationTransport
 from skypulse._http import AsyncHTTPTransport
 from skypulse._noaa import AsyncNOAATransport
 from skypulse._storm_mapping import (
+    G_SCALE_LEVELS,
     adjust_impact_for_latitude,
     classify_latitude_zone,
     get_health_impact,
 )
+from skypulse._translations import get_label
 from skypulse._uv import AsyncUVTransport
 from skypulse.models.air_quality import AirQuality, AirQualityEntry
 from skypulse.models.circadian import CircadianLight
@@ -154,8 +157,14 @@ class AsyncSkyPulseClient(_BaseClient):
         Returns:
             A list of matching ``Location`` objects.
         """
+        key = build_cache_key("geocode", q=city, limit=limit)
+        cached = self._check_geo_cache(key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
         params: dict[str, Any] = {"appid": self._api_key, "q": city, "limit": limit}
-        return parse_locations(await self._request(GEOCODE_DIRECT_URL, params))
+        result = parse_locations(await self._request(GEOCODE_DIRECT_URL, params))
+        self._store_geo_cache(key, result)
+        return result
 
     async def reverse_geocode(self, lat: float, lon: float, *, limit: int = 5) -> list[Location]:
         """Convert geographic coordinates to location names.
@@ -179,7 +188,7 @@ class AsyncSkyPulseClient(_BaseClient):
 
     async def get_storm_health_impact(self) -> HealthImpact:
         storm = await self.get_magnetic_storm()
-        return get_health_impact(storm.kp_index, storm.g_scale)
+        return get_health_impact(storm.kp_index, storm.g_scale, self._language)
 
     async def get_location(self, ip: str | None = None) -> Location:
         return await self._geo.locate(ip)
@@ -206,10 +215,11 @@ class AsyncSkyPulseClient(_BaseClient):
         storm = await self.get_magnetic_storm()
         kp_int = min(int(storm.kp_index), 9)
         zone = classify_latitude_zone(abs(location.latitude), kp_int)
-        base_impact = get_health_impact(storm.kp_index, storm.g_scale)
-        adjusted_level = adjust_impact_for_latitude(base_impact.level, zone)
+        raw_level = G_SCALE_LEVELS.get(storm.g_scale, "none")
+        adjusted_raw = adjust_impact_for_latitude(raw_level, zone)
+        base_impact = get_health_impact(storm.kp_index, storm.g_scale, self._language)
         adjusted_impact = HealthImpact(
-            level=adjusted_level,
+            level=get_label("health_level", adjusted_raw, self._language),
             kp_index=base_impact.kp_index,
             g_scale=base_impact.g_scale,
             affected_systems=base_impact.affected_systems,

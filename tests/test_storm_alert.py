@@ -24,7 +24,7 @@ class TestGetStormAlert:
 
         assert isinstance(alert, StormAlert)
         assert alert.latitude_zone == "high"
-        assert alert.health_impact.level == "high"
+        assert alert.health_impact.level == "High"
         assert alert.aurora_visible is True
         assert alert.latitude == 65.0
         client.close()
@@ -37,7 +37,7 @@ class TestGetStormAlert:
         alert = client.get_storm_alert(lat=50.0, lon=10.0)
 
         assert alert.latitude_zone == "mid"
-        assert alert.health_impact.level == "moderate"
+        assert alert.health_impact.level == "Moderate"
         assert alert.aurora_visible is False
         client.close()
 
@@ -49,7 +49,7 @@ class TestGetStormAlert:
         alert = client.get_storm_alert(lat=20.0, lon=0.0)
 
         assert alert.latitude_zone == "low"
-        assert alert.health_impact.level == "low"
+        assert alert.health_impact.level == "Low"
         assert alert.aurora_visible is False
         client.close()
 
@@ -61,7 +61,7 @@ class TestGetStormAlert:
         alert = client.get_storm_alert(lat=65.0, lon=25.0)
 
         assert alert.latitude_zone == "low"
-        assert alert.health_impact.level == "none"
+        assert alert.health_impact.level == "None"
         assert alert.aurora_visible is False
         client.close()
 
@@ -98,7 +98,7 @@ class TestGetStormAlert:
         alert = client.get_storm_alert(lat=-65.0, lon=-60.0)
 
         assert alert.latitude_zone == "high"
-        assert alert.health_impact.level == "high"
+        assert alert.health_impact.level == "High"
         assert alert.aurora_visible is True
         client.close()
 
@@ -110,6 +110,6 @@ class TestGetStormAlert:
         alert = client.get_storm_alert(lat=50.0, lon=10.0)
 
         assert alert.latitude_zone == "high"
-        assert alert.health_impact.level == "severe"
+        assert alert.health_impact.level == "Severe"
         assert alert.aurora_visible is True
         client.close()

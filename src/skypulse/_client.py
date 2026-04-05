@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from skypulse._base import _BaseClient, parse_forecast, parse_locations, parse_weather
+from skypulse._cache import build_cache_key
 from skypulse._circadian import compute_circadian_light
 from skypulse._constants import DEFAULT_GEOLOCATION_URL, DEFAULT_TIMEOUT
 from skypulse._endpoints import (
@@ -20,6 +21,7 @@ from skypulse._geolocation import GeoLocationTransport
 from skypulse._http import HTTPTransport
 from skypulse._noaa import NOAATransport
 from skypulse._storm_mapping import (
+    G_SCALE_LEVELS,
     adjust_impact_for_latitude,
     classify_latitude_zone,
     get_health_impact,
@@ -154,8 +156,14 @@ class SkyPulseClient(_BaseClient):
         Returns:
             A list of matching ``Location`` objects.
         """
+        key = build_cache_key("geocode", q=city, limit=limit)
+        cached = self._check_geo_cache(key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
         params: dict[str, Any] = {"appid": self._api_key, "q": city, "limit": limit}
-        return parse_locations(self._request(GEOCODE_DIRECT_URL, params))
+        result = parse_locations(self._request(GEOCODE_DIRECT_URL, params))
+        self._store_geo_cache(key, result)
+        return result
 
     def reverse_geocode(self, lat: float, lon: float, *, limit: int = 5) -> list[Location]:
         """Convert geographic coordinates to location names.
@@ -168,8 +176,14 @@ class SkyPulseClient(_BaseClient):
         Returns:
             A list of matching ``Location`` objects.
         """
+        key = build_cache_key("reverse", lat=f"{lat:.4f}", lon=f"{lon:.4f}", limit=limit)
+        cached = self._check_geo_cache(key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
         params: dict[str, Any] = {"appid": self._api_key, "lat": lat, "lon": lon, "limit": limit}
-        return parse_locations(self._request(GEOCODE_REVERSE_URL, params))
+        result = parse_locations(self._request(GEOCODE_REVERSE_URL, params))
+        self._store_geo_cache(key, result)
+        return result
 
     def get_magnetic_storm(self) -> MagneticStorm:
         return self._noaa.fetch_current_kp(self._language)
@@ -179,7 +193,7 @@ class SkyPulseClient(_BaseClient):
 
     def get_storm_health_impact(self) -> HealthImpact:
         storm = self.get_magnetic_storm()
-        return get_health_impact(storm.kp_index, storm.g_scale)
+        return get_health_impact(storm.kp_index, storm.g_scale, self._language)
 
     def get_location(self, ip: str | None = None) -> Location:
         return self._geo.locate(ip)
@@ -206,10 +220,11 @@ class SkyPulseClient(_BaseClient):
         storm = self.get_magnetic_storm()
         kp_int = min(int(storm.kp_index), 9)
         zone = classify_latitude_zone(abs(location.latitude), kp_int)
-        base_impact = get_health_impact(storm.kp_index, storm.g_scale)
-        adjusted_level = adjust_impact_for_latitude(base_impact.level, zone)
+        raw_level = G_SCALE_LEVELS.get(storm.g_scale, "none")
+        adjusted_raw = adjust_impact_for_latitude(raw_level, zone)
+        base_impact = get_health_impact(storm.kp_index, storm.g_scale, self._language)
         adjusted_impact = HealthImpact(
-            level=adjusted_level,
+            level=get_label("health_level", adjusted_raw, self._language),
             kp_index=base_impact.kp_index,
             g_scale=base_impact.g_scale,
             affected_systems=base_impact.affected_systems,
