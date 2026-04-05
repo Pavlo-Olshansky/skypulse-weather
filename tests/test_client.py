@@ -126,7 +126,7 @@ def test_get_current_weather_not_found() -> None:
 
 def test_get_current_weather_no_location_raises() -> None:
     client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
-    with pytest.raises(ValueError, match="Exactly one location"):
+    with pytest.raises(ValueError, match="No location provided"):
         client.get_current_weather()
     client.close()
 

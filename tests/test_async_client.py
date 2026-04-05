@@ -10,7 +10,7 @@ import pytest
 import respx
 
 from openweather import AsyncOpenWeatherClient
-from openweather import CacheConfig, RetryConfig, Units
+from openweather import CacheConfig, RetryConfig
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"

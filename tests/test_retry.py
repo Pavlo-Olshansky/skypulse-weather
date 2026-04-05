@@ -10,7 +10,7 @@ import pytest
 import respx
 
 from openweather import OpenWeatherClient
-from openweather import AuthenticationError, NotFoundError, RateLimitError, ServerError
+from openweather import AuthenticationError, NotFoundError, ServerError
 from openweather import RetryConfig
 
 FIXTURES = Path(__file__).parent / "fixtures"
