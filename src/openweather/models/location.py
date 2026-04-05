@@ -20,3 +20,4 @@ class Location:
     longitude: float
     country: str
     state: str | None = None
+    source: str = "explicit"
