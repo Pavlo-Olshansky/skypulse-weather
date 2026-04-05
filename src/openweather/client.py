@@ -13,7 +13,7 @@ from openweather._endpoints import (
     GEOCODE_REVERSE_URL,
     build_weather_params,
 )
-from openweather._http import request_sync
+from openweather._http import HTTPTransport
 from openweather.models.common import CacheConfig, RetryConfig, Units
 from openweather.models.forecast import Forecast
 from openweather.models.location import Location
@@ -49,12 +49,10 @@ class OpenWeatherClient(_BaseClient):
         """
         super().__init__(api_key, units=units, language=language, cache=cache, retry=retry)
         self._client = httpx.Client(timeout=timeout)
+        self._transport = HTTPTransport(self._client, api_key=self._api_key, retry=self._retry, logger=self._logger)
 
     def _request(self, url: str, params: dict[str, Any]) -> Any:
-        return request_sync(
-            self._client, url, params,
-            api_key=self._api_key, retry=self._retry, logger=self._logger,
-        )
+        return self._transport.request(url, params)
 
     def get_current_weather(
         self,

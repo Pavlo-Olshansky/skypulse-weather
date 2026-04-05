@@ -95,99 +95,109 @@ def _raise_on_error(response: httpx.Response, url: str, sp: dict[str, Any], api_
     _map_error(response.status_code, body, endpoint=url, params=sp, api_key=api_key, headers=response.headers)
 
 
-def request_sync(
-    client: httpx.Client,
-    url: str,
-    params: dict[str, Any],
-    *,
-    api_key: str | None = None,
-    retry: RetryConfig | None = None,
-    logger: logging.Logger | None = None,
-) -> Any:
-    log = logger or get_logger()
-    retry_cfg = retry or RetryConfig(enabled=False)
-    sp = _safe_params(params)
-    max_attempts = (retry_cfg.max_retries + 1) if retry_cfg.enabled else 1
+class HTTPTransport:
+    """Synchronous HTTP transport with retry and error mapping."""
 
-    for attempt in range(max_attempts):
-        try:
-            log.debug("Request %s params=%s attempt=%d", url, sp, attempt + 1)
-            response = client.get(url, params=params)
-            log.debug("Response status=%d", response.status_code)
+    def __init__(
+        self,
+        client: httpx.Client,
+        api_key: str | None = None,
+        retry: RetryConfig | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
+        self._client = client
+        self._api_key = api_key
+        self._retry = retry or RetryConfig(enabled=False)
+        self._log = logger or get_logger()
 
-            result = _handle_response(response, url, sp, api_key)
-            if result is not None:
-                return result
+    def request(self, url: str, params: dict[str, Any]) -> Any:
+        sp = _safe_params(params)
+        max_attempts = (self._retry.max_retries + 1) if self._retry.enabled else 1
 
-            if _should_retry(response.status_code) and attempt < max_attempts - 1:
-                wait = _calculate_wait(response.status_code, attempt, retry_cfg.backoff_factor, response.headers)
-                log.debug("Retrying in %.1fs (status=%d)", wait, response.status_code)
-                time.sleep(wait)
-                continue
+        for attempt in range(max_attempts):
+            try:
+                self._log.debug("Request %s params=%s attempt=%d", url, sp, attempt + 1)
+                response = self._client.get(url, params=params)
+                self._log.debug("Response status=%d", response.status_code)
 
-            _raise_on_error(response, url, sp, api_key)
-        except httpx.ConnectError as exc:
-            if attempt < max_attempts - 1:
-                time.sleep(retry_cfg.backoff_factor * (2**attempt))
-                continue
-            raise NetworkError(message=str(exc), endpoint=url, params=sp, api_key=api_key) from exc
-        except httpx.TimeoutException as exc:
-            if attempt < max_attempts - 1:
-                time.sleep(retry_cfg.backoff_factor * (2**attempt))
-                continue
-            raise TimeoutError(
-                timeout=client.timeout.connect or 30.0,
-                message=str(exc), endpoint=url, params=sp, api_key=api_key,
-            ) from exc
+                result = _handle_response(response, url, sp, self._api_key)
+                if result is not None:
+                    return result
 
-    raise ServerError(message="Max retries exceeded", endpoint=url, params=sp, api_key=api_key)
+                if _should_retry(response.status_code) and attempt < max_attempts - 1:
+                    wait = _calculate_wait(response.status_code, attempt, self._retry.backoff_factor, response.headers)
+                    self._log.debug("Retrying in %.1fs (status=%d)", wait, response.status_code)
+                    time.sleep(wait)
+                    continue
+
+                _raise_on_error(response, url, sp, self._api_key)
+            except httpx.ConnectError as exc:
+                if attempt < max_attempts - 1:
+                    time.sleep(self._retry.backoff_factor * (2**attempt))
+                    continue
+                raise NetworkError(message=str(exc), endpoint=url, params=sp, api_key=self._api_key) from exc
+            except httpx.TimeoutException as exc:
+                if attempt < max_attempts - 1:
+                    time.sleep(self._retry.backoff_factor * (2**attempt))
+                    continue
+                raise TimeoutError(
+                    timeout=self._client.timeout.connect or 30.0,
+                    message=str(exc), endpoint=url, params=sp, api_key=self._api_key,
+                ) from exc
+
+        raise ServerError(message="Max retries exceeded", endpoint=url, params=sp, api_key=self._api_key)
 
 
-async def request_async(
-    client: httpx.AsyncClient,
-    url: str,
-    params: dict[str, Any],
-    *,
-    api_key: str | None = None,
-    retry: RetryConfig | None = None,
-    logger: logging.Logger | None = None,
-) -> Any:
-    import asyncio
+class AsyncHTTPTransport:
+    """Asynchronous HTTP transport with retry and error mapping."""
 
-    log = logger or get_logger()
-    retry_cfg = retry or RetryConfig(enabled=False)
-    sp = _safe_params(params)
-    max_attempts = (retry_cfg.max_retries + 1) if retry_cfg.enabled else 1
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        api_key: str | None = None,
+        retry: RetryConfig | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
+        self._client = client
+        self._api_key = api_key
+        self._retry = retry or RetryConfig(enabled=False)
+        self._log = logger or get_logger()
 
-    for attempt in range(max_attempts):
-        try:
-            log.debug("Request %s params=%s attempt=%d", url, sp, attempt + 1)
-            response = await client.get(url, params=params)
-            log.debug("Response status=%d", response.status_code)
+    async def request(self, url: str, params: dict[str, Any]) -> Any:
+        import asyncio
 
-            result = _handle_response(response, url, sp, api_key)
-            if result is not None:
-                return result
+        sp = _safe_params(params)
+        max_attempts = (self._retry.max_retries + 1) if self._retry.enabled else 1
 
-            if _should_retry(response.status_code) and attempt < max_attempts - 1:
-                wait = _calculate_wait(response.status_code, attempt, retry_cfg.backoff_factor, response.headers)
-                log.debug("Retrying in %.1fs (status=%d)", wait, response.status_code)
-                await asyncio.sleep(wait)
-                continue
+        for attempt in range(max_attempts):
+            try:
+                self._log.debug("Request %s params=%s attempt=%d", url, sp, attempt + 1)
+                response = await self._client.get(url, params=params)
+                self._log.debug("Response status=%d", response.status_code)
 
-            _raise_on_error(response, url, sp, api_key)
-        except httpx.ConnectError as exc:
-            if attempt < max_attempts - 1:
-                await asyncio.sleep(retry_cfg.backoff_factor * (2**attempt))
-                continue
-            raise NetworkError(message=str(exc), endpoint=url, params=sp, api_key=api_key) from exc
-        except httpx.TimeoutException as exc:
-            if attempt < max_attempts - 1:
-                await asyncio.sleep(retry_cfg.backoff_factor * (2**attempt))
-                continue
-            raise TimeoutError(
-                timeout=client.timeout.connect or 30.0,
-                message=str(exc), endpoint=url, params=sp, api_key=api_key,
-            ) from exc
+                result = _handle_response(response, url, sp, self._api_key)
+                if result is not None:
+                    return result
 
-    raise ServerError(message="Max retries exceeded", endpoint=url, params=sp, api_key=api_key)
+                if _should_retry(response.status_code) and attempt < max_attempts - 1:
+                    wait = _calculate_wait(response.status_code, attempt, self._retry.backoff_factor, response.headers)
+                    self._log.debug("Retrying in %.1fs (status=%d)", wait, response.status_code)
+                    await asyncio.sleep(wait)
+                    continue
+
+                _raise_on_error(response, url, sp, self._api_key)
+            except httpx.ConnectError as exc:
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(self._retry.backoff_factor * (2**attempt))
+                    continue
+                raise NetworkError(message=str(exc), endpoint=url, params=sp, api_key=self._api_key) from exc
+            except httpx.TimeoutException as exc:
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(self._retry.backoff_factor * (2**attempt))
+                    continue
+                raise TimeoutError(
+                    timeout=self._client.timeout.connect or 30.0,
+                    message=str(exc), endpoint=url, params=sp, api_key=self._api_key,
+                ) from exc
+
+        raise ServerError(message="Max retries exceeded", endpoint=url, params=sp, api_key=self._api_key)
