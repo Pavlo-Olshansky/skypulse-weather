@@ -32,10 +32,10 @@
 
 ## Phase 4: Polish
 
-- [ ] [T019] Run full test suite (`pytest`) — all existing + new tests pass
-- [ ] [T020] Run `ruff check src/` and fix any linting issues
-- [ ] [T021] Run `mypy src/skypulse` and fix any type errors
-- [ ] [T022] Update `README.md` caching section to document geocode cache behavior and new `CacheConfig` fields
+- [x] [T019] Run full test suite (`pytest`) — all existing + new tests pass
+- [x] [T020] Run `ruff check src/` and fix any linting issues
+- [x] [T021] Run `mypy src/skypulse` and fix any type errors
+- [x] [T022] Update `README.md` caching section to document geocode cache behavior and new `CacheConfig` fields
 
 ## Dependency Graph
 

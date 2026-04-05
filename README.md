@@ -410,7 +410,13 @@ from skypulse import SkyPulseClient, CacheConfig
 
 client = SkyPulseClient(
     api_key="your-api-key",
-    cache=CacheConfig(enabled=True, ttl=600, max_entries=256),
+    cache=CacheConfig(
+        enabled=True,
+        ttl=600,               # weather cache TTL (seconds)
+        max_entries=256,        # weather cache size
+        geo_cache_ttl=3600,     # geocode cache TTL (default: 1 hour)
+        geo_cache_max_entries=256,  # geocode cache size
+    ),
 )
 
 # Second call returns from cache
@@ -420,6 +426,8 @@ weather2 = client.get_current_weather(city="Rome")  # instant, from cache
 # Force fresh data
 weather3 = client.get_current_weather(city="Rome", skip_cache=True)
 ```
+
+Geocode results (city-to-coordinates) are cached separately with a longer TTL since coordinates rarely change. When caching is enabled, `get_circadian_light()` reuses cached weather data from `get_current_weather()`, and concurrent async UV requests are deduplicated automatically.
 
 Storm and geolocation data use separate caches with stale-while-revalidate fallback — if the external service is temporarily unavailable, the SDK returns the last known data with a `stale=True` flag.
 
