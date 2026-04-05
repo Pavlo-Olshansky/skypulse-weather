@@ -6,6 +6,8 @@ from typing import Any
 
 from skypulse._constants import DEFAULT_GEOLOCATION_URL, ENV_API_KEY, ENV_SKYPULSE_API_KEY
 from skypulse._logging import get_logger
+from cachetools import TTLCache
+
 from skypulse._cache import Cache, build_cache_key
 from skypulse._errors import SkyPulseError
 from skypulse.models.common import CacheConfig, RetryConfig, Units
@@ -122,8 +124,12 @@ class _BaseClient:
         self._units = units
         self._language = language
         self._cache: Cache | None = None
+        self._geo_cache: TTLCache[str, Any] | None = None
         if cache and cache.enabled:
             self._cache = Cache(max_entries=cache.max_entries, default_ttl=cache.ttl)
+            self._geo_cache = TTLCache(
+                maxsize=cache.geo_cache_max_entries, ttl=cache.geo_cache_ttl,
+            )
         self._retry = retry or RetryConfig()
         self._logger = get_logger(api_key)
         self._auto_locate = auto_locate
@@ -142,3 +148,12 @@ class _BaseClient:
     def _store_cache(self, key: str, result: Any) -> None:
         if self._cache:
             self._cache.set(key, result)
+
+    def _check_geo_cache(self, key: str) -> Any | None:
+        if self._geo_cache is not None:
+            return self._geo_cache.get(key)
+        return None
+
+    def _store_geo_cache(self, key: str, value: Any) -> None:
+        if self._geo_cache is not None:
+            self._geo_cache[key] = value

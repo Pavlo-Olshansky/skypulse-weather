@@ -7,6 +7,8 @@ from skypulse._constants import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_CACHE_MAX_ENTRIES,
     DEFAULT_CACHE_TTL,
+    DEFAULT_GEO_CACHE_MAX_ENTRIES,
+    DEFAULT_GEO_CACHE_TTL_CONFIG,
     DEFAULT_MAX_RETRIES,
 )
 
@@ -36,6 +38,8 @@ class CacheConfig:
     enabled: bool = True
     ttl: int = DEFAULT_CACHE_TTL
     max_entries: int = DEFAULT_CACHE_MAX_ENTRIES
+    geo_cache_ttl: int = DEFAULT_GEO_CACHE_TTL_CONFIG
+    geo_cache_max_entries: int = DEFAULT_GEO_CACHE_MAX_ENTRIES
 
 
 @dataclass

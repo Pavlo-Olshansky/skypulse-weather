@@ -177,8 +177,14 @@ class AsyncSkyPulseClient(_BaseClient):
         Returns:
             A list of matching ``Location`` objects.
         """
+        key = build_cache_key("reverse", lat=f"{lat:.4f}", lon=f"{lon:.4f}", limit=limit)
+        cached = self._check_geo_cache(key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
         params: dict[str, Any] = {"appid": self._api_key, "lat": lat, "lon": lon, "limit": limit}
-        return parse_locations(await self._request(GEOCODE_REVERSE_URL, params))
+        result = parse_locations(await self._request(GEOCODE_REVERSE_URL, params))
+        self._store_geo_cache(key, result)
+        return result
 
     async def get_magnetic_storm(self) -> MagneticStorm:
         return await self._noaa.fetch_current_kp(self._language)
