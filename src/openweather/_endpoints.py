@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-WEATHER_BASE = "https://api.openweathermap.org/data/2.5"
-GEO_BASE = "https://api.openweathermap.org/geo/1.0"
+from openweather._constants import API_BASE_GEO, API_BASE_WEATHER
 
 
 def _build_params(api_key: str, **kwargs: Any) -> dict[str, Any]:
@@ -14,10 +13,10 @@ def _build_params(api_key: str, **kwargs: Any) -> dict[str, Any]:
     return params
 
 
-CURRENT_WEATHER_URL = f"{WEATHER_BASE}/weather"
-FORECAST_URL = f"{WEATHER_BASE}/forecast"
-GEOCODE_DIRECT_URL = f"{GEO_BASE}/direct"
-GEOCODE_REVERSE_URL = f"{GEO_BASE}/reverse"
+CURRENT_WEATHER_URL = f"{API_BASE_WEATHER}/weather"
+FORECAST_URL = f"{API_BASE_WEATHER}/forecast"
+GEOCODE_DIRECT_URL = f"{API_BASE_GEO}/direct"
+GEOCODE_REVERSE_URL = f"{API_BASE_GEO}/reverse"
 
 
 def build_location_params(

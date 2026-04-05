@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from openweather._base import _BaseClient, parse_forecast, parse_locations, parse_weather
+from openweather._constants import DEFAULT_TIMEOUT
 from openweather._endpoints import (
     CURRENT_WEATHER_URL,
     FORECAST_URL,
@@ -33,7 +34,7 @@ class OpenWeatherClient(_BaseClient):
         units: Units = Units.METRIC,
         language: str = "en",
         cache: CacheConfig | None = None,
-        timeout: float = 30.0,
+        timeout: float = DEFAULT_TIMEOUT,
         retry: RetryConfig | None = None,
     ) -> None:
         """Initialize the OpenWeather client.

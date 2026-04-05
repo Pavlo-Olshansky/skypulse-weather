@@ -3,6 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from openweather._constants import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_CACHE_MAX_ENTRIES,
+    DEFAULT_CACHE_TTL,
+    DEFAULT_MAX_RETRIES,
+)
+
 
 class Units(str, Enum):
     """Measurement unit system for API responses.
@@ -27,8 +34,8 @@ class CacheConfig:
     """
 
     enabled: bool = True
-    ttl: int = 300
-    max_entries: int = 128
+    ttl: int = DEFAULT_CACHE_TTL
+    max_entries: int = DEFAULT_CACHE_MAX_ENTRIES
 
 
 @dataclass
@@ -42,5 +49,5 @@ class RetryConfig:
     """
 
     enabled: bool = True
-    max_retries: int = 3
-    backoff_factor: float = 0.5
+    max_retries: int = DEFAULT_MAX_RETRIES
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR
