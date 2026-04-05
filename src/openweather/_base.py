@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Any
 
+from openweather._constants import ENV_API_KEY
 from openweather._logging import get_logger
 from openweather.cache import Cache, build_cache_key
+from openweather.errors import OpenWeatherError
 from openweather.models.common import CacheConfig, RetryConfig, Units
 from openweather.models.forecast import Forecast, ForecastEntry
 from openweather.models.location import Location
@@ -97,14 +100,19 @@ class _BaseClient:
 
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None = None,
         *,
         units: Units = Units.METRIC,
         language: str = "en",
         cache: CacheConfig | None = None,
         retry: RetryConfig | None = None,
     ) -> None:
-        self._api_key = api_key
+        resolved_key = api_key or os.environ.get(ENV_API_KEY, "").strip()
+        if not resolved_key:
+            raise OpenWeatherError(
+                message=f"No API key provided. Pass api_key= or set {ENV_API_KEY} environment variable."
+            )
+        self._api_key = resolved_key
         self._units = units
         self._language = language
         self._cache: Cache | None = None

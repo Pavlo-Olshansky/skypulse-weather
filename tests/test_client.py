@@ -14,6 +14,7 @@ from openweather.errors import (
     AuthenticationError,
     NetworkError,
     NotFoundError,
+    OpenWeatherError,
     ParseError,
     RateLimitError,
     ServerError,
@@ -453,3 +454,35 @@ def test_forecast_skip_cache() -> None:
     client.get_forecast(city="London", skip_cache=True)
     assert route.call_count == 2
     client.close()
+
+
+@respx.mock
+def test_env_var_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "env-key-123")
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient(retry=RetryConfig(enabled=False))
+    weather = client.get_current_weather(city="London")
+    assert weather.location.name == "London"
+    client.close()
+
+
+@respx.mock
+def test_explicit_key_overrides_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "env-key")
+    respx.get(WEATHER_URL).mock(
+        return_value=httpx.Response(200, json=_load("current_weather.json"))
+    )
+    client = OpenWeatherClient("explicit-key", retry=RetryConfig(enabled=False))
+    client.get_current_weather(city="London")
+    req = respx.calls[0].request
+    assert "explicit-key" in str(req.url)
+    assert "env-key" not in str(req.url)
+    client.close()
+
+
+def test_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENWEATHER_API_KEY", raising=False)
+    with pytest.raises(OpenWeatherError, match="No API key provided"):
+        OpenWeatherClient()

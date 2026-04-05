@@ -29,7 +29,7 @@ class AsyncOpenWeatherClient(_BaseClient):
 
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None = None,
         *,
         units: Units = Units.METRIC,
         language: str = "en",
