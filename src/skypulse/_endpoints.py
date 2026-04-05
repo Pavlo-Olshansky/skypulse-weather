@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from skypulse._constants import API_BASE_GEO, API_BASE_WEATHER
+from skypulse._constants import API_BASE_AIR_POLLUTION, API_BASE_GEO, API_BASE_WEATHER
 
 
 def _build_params(api_key: str, **kwargs: Any) -> dict[str, Any]:
@@ -17,6 +17,8 @@ CURRENT_WEATHER_URL = f"{API_BASE_WEATHER}/weather"
 FORECAST_URL = f"{API_BASE_WEATHER}/forecast"
 GEOCODE_DIRECT_URL = f"{API_BASE_GEO}/direct"
 GEOCODE_REVERSE_URL = f"{API_BASE_GEO}/reverse"
+AIR_POLLUTION_URL = API_BASE_AIR_POLLUTION
+AIR_POLLUTION_FORECAST_URL = f"{API_BASE_AIR_POLLUTION}/forecast"
 
 
 def build_location_params(

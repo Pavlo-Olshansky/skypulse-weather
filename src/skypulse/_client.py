@@ -5,8 +5,11 @@ from typing import Any
 import httpx
 
 from skypulse._base import _BaseClient, parse_forecast, parse_locations, parse_weather
+from skypulse._circadian import compute_circadian_light
 from skypulse._constants import DEFAULT_GEOLOCATION_URL, DEFAULT_TIMEOUT
 from skypulse._endpoints import (
+    AIR_POLLUTION_FORECAST_URL,
+    AIR_POLLUTION_URL,
     CURRENT_WEATHER_URL,
     FORECAST_URL,
     GEOCODE_DIRECT_URL,
@@ -21,11 +24,16 @@ from skypulse._storm_mapping import (
     classify_latitude_zone,
     get_health_impact,
 )
+from skypulse._translations import get_label
+from skypulse._uv import UVTransport
+from skypulse.models.air_quality import AirQuality, AirQualityEntry
+from skypulse.models.circadian import CircadianLight
 from skypulse.models.common import CacheConfig, RetryConfig, Units
 from skypulse.models.forecast import Forecast
 from skypulse.models.health import HealthImpact, StormAlert
 from skypulse.models.location import Location
 from skypulse.models.storm import MagneticForecastEntry, MagneticStorm
+from skypulse.models.uv import UVForecastEntry, UVIndex
 from skypulse.models.weather import Weather
 
 
@@ -56,6 +64,7 @@ class SkyPulseClient(_BaseClient):
         self._transport = HTTPTransport(self._client, api_key=self._api_key, retry=self._retry, logger=self._logger)
         self._noaa = NOAATransport(self._client)
         self._geo = GeoLocationTransport(self._client, base_url=geolocation_url)
+        self._uv = UVTransport(self._client)
 
     def _request(self, url: str, params: dict[str, Any]) -> Any:
         return self._transport.request(url, params)
@@ -163,10 +172,10 @@ class SkyPulseClient(_BaseClient):
         return parse_locations(self._request(GEOCODE_REVERSE_URL, params))
 
     def get_magnetic_storm(self) -> MagneticStorm:
-        return self._noaa.fetch_current_kp()
+        return self._noaa.fetch_current_kp(self._language)
 
     def get_magnetic_forecast(self) -> list[MagneticForecastEntry]:
-        return self._noaa.fetch_forecast()
+        return self._noaa.fetch_forecast(self._language)
 
     def get_storm_health_impact(self) -> HealthImpact:
         storm = self.get_magnetic_storm()
@@ -218,6 +227,110 @@ class SkyPulseClient(_BaseClient):
             latitude_zone=zone,
         )
 
+    def _resolve_coords(
+        self,
+        city: str | None,
+        lat: float | None,
+        lon: float | None,
+        auto_locate: bool | None,
+    ) -> tuple[float, float]:
+        if lat is not None and lon is not None:
+            return lat, lon
+        if city is not None:
+            locations = self.geocode(city, limit=1)
+            if not locations:
+                from skypulse._errors import NotFoundError
+                raise NotFoundError(status_code=404, message=f"City not found: {city}")
+            return locations[0].latitude, locations[0].longitude
+        should_auto = auto_locate if auto_locate is not None else self._auto_locate
+        if should_auto:
+            loc = self.get_location()
+            return loc.latitude, loc.longitude
+        raise ValueError("No location provided. Pass city, lat+lon, or auto_locate=True.")
+
+    def get_air_quality(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+        skip_cache: bool = False,
+    ) -> AirQuality:
+        rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
+        params: dict[str, Any] = {"appid": self._api_key, "lat": rlat, "lon": rlon}
+        key, cached = self._check_cache("aq", params, skip_cache)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+        data = self._request(AIR_POLLUTION_URL, params)
+        result = _parse_air_quality(data, self._language)
+        self._store_cache(key, result)
+        return result
+
+    def get_air_quality_forecast(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+        skip_cache: bool = False,
+    ) -> list[AirQualityEntry]:
+        rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
+        params: dict[str, Any] = {"appid": self._api_key, "lat": rlat, "lon": rlon}
+        key, cached = self._check_cache("aq_forecast", params, skip_cache)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+        data = self._request(AIR_POLLUTION_FORECAST_URL, params)
+        result = _parse_air_quality_forecast(data, self._language)
+        self._store_cache(key, result)
+        return result
+
+    def get_uv_index(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+    ) -> UVIndex:
+        rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
+        return self._uv.get_current(rlat, rlon, self._language)
+
+    def get_uv_forecast(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+    ) -> list[UVForecastEntry]:
+        rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
+        return self._uv.get_forecast(rlat, rlon, self._language)
+
+    def get_circadian_light(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+    ) -> CircadianLight:
+        rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
+        weather_data = self._request(
+            CURRENT_WEATHER_URL,
+            {"appid": self._api_key, "lat": rlat, "lon": rlon, "units": self._units.value},
+        )
+        from datetime import datetime, timezone
+        return compute_circadian_light(
+            sunrise_ts=weather_data.get("sys", {}).get("sunrise", 0),
+            sunset_ts=weather_data.get("sys", {}).get("sunset", 0),
+            cloud_cover=weather_data.get("clouds", {}).get("all", 0),
+            latitude=rlat,
+            now=datetime.now(tz=timezone.utc),
+            language=self._language,
+        )
+
     def close(self) -> None:
         """Close the underlying HTTP client and release resources."""
         self._client.close()
@@ -227,3 +340,36 @@ class SkyPulseClient(_BaseClient):
 
     def __exit__(self, *args: Any) -> None:
         self.close()
+
+
+def _parse_aq_entry(item: dict[str, Any], language: str) -> dict[str, Any]:
+    from datetime import datetime, timezone
+    aqi = item["main"]["aqi"]
+    c = item["components"]
+    return {
+        "aqi": aqi,
+        "label": get_label("aqi_label", str(aqi), language),
+        "co": c["co"],
+        "no": c["no"],
+        "no2": c["no2"],
+        "o3": c["o3"],
+        "so2": c["so2"],
+        "pm2_5": c["pm2_5"],
+        "pm10": c["pm10"],
+        "nh3": c["nh3"],
+        "measured_at": datetime.fromtimestamp(item["dt"], tz=timezone.utc),
+    }
+
+
+def _parse_air_quality(data: dict[str, Any], language: str) -> AirQuality:
+    from skypulse._errors import NotFoundError
+    items = data.get("list", [])
+    if not items:
+        raise NotFoundError(status_code=404, message="No air quality data for this location")
+    return AirQuality(**_parse_aq_entry(items[0], language))
+
+
+def _parse_air_quality_forecast(data: dict[str, Any], language: str) -> list[AirQualityEntry]:
+    entries = [AirQualityEntry(**_parse_aq_entry(item, language)) for item in data.get("list", [])]
+    entries.sort(key=lambda e: e.measured_at)
+    return entries
