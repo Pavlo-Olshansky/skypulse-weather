@@ -69,3 +69,5 @@ class Weather:
     clouds: int
     condition: Condition
     observed_at: datetime
+    sunrise: datetime | None = None
+    sunset: datetime | None = None

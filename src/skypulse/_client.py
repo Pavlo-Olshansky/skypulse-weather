@@ -332,15 +332,12 @@ class SkyPulseClient(_BaseClient):
         auto_locate: bool | None = None,
     ) -> CircadianLight:
         rlat, rlon = self._resolve_coords(city, lat, lon, auto_locate)
-        weather_data = self._request(
-            CURRENT_WEATHER_URL,
-            {"appid": self._api_key, "lat": rlat, "lon": rlon, "units": self._units.value},
-        )
+        weather = self.get_current_weather(lat=rlat, lon=rlon)
         from datetime import datetime, timezone
         return compute_circadian_light(
-            sunrise_ts=weather_data.get("sys", {}).get("sunrise", 0),
-            sunset_ts=weather_data.get("sys", {}).get("sunset", 0),
-            cloud_cover=weather_data.get("clouds", {}).get("all", 0),
+            sunrise_ts=int(weather.sunrise.timestamp()) if weather.sunrise else 0,
+            sunset_ts=int(weather.sunset.timestamp()) if weather.sunset else 0,
+            cloud_cover=weather.clouds,
             latitude=rlat,
             now=datetime.now(tz=timezone.utc),
             language=self._language,

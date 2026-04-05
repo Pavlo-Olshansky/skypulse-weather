@@ -17,12 +17,15 @@ from skypulse.models import (
 
 
 def _parse_weather(data: dict[str, Any]) -> Weather:
+    sys = data.get("sys", {})
+    sunrise_ts = sys.get("sunrise")
+    sunset_ts = sys.get("sunset")
     return Weather(
         location=Location(
             name=data["name"],
             latitude=data["coord"]["lat"],
             longitude=data["coord"]["lon"],
-            country=data["sys"]["country"],
+            country=sys.get("country", ""),
         ),
         temperature=data["main"]["temp"],
         feels_like=data["main"]["feels_like"],
@@ -44,6 +47,8 @@ def _parse_weather(data: dict[str, Any]) -> Weather:
             icon=data["weather"][0]["icon"],
         ),
         observed_at=datetime.fromtimestamp(data["dt"], tz=timezone.utc),
+        sunrise=datetime.fromtimestamp(sunrise_ts, tz=timezone.utc) if sunrise_ts else None,
+        sunset=datetime.fromtimestamp(sunset_ts, tz=timezone.utc) if sunset_ts else None,
     )
 
 
@@ -126,6 +131,30 @@ def test_parse_geocoding(geocoding_direct_data: list[Any]) -> None:
     assert locations[0].country == "GB"
     assert locations[0].state == "England"
     assert locations[1].country == "CA"
+
+
+def test_weather_sunrise_sunset(current_weather_data: dict[str, Any]) -> None:
+    weather = _parse_weather(current_weather_data)
+    assert weather.sunrise is not None
+    assert weather.sunset is not None
+    assert isinstance(weather.sunrise, datetime)
+    assert isinstance(weather.sunset, datetime)
+    assert weather.sunrise.tzinfo == timezone.utc
+    assert weather.sunset.tzinfo == timezone.utc
+
+
+def test_weather_sunrise_sunset_absent() -> None:
+    weather = Weather(
+        location=Location(name="X", latitude=0, longitude=0, country="XX"),
+        temperature=0, feels_like=0, temp_min=0, temp_max=0,
+        humidity=0, pressure=0, visibility=0,
+        wind=Wind(speed=0, direction=0),
+        clouds=0,
+        condition=Condition(id=800, main="Clear", description="clear", icon="01d"),
+        observed_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    assert weather.sunrise is None
+    assert weather.sunset is None
 
 
 def test_weather_is_frozen(current_weather_data: dict[str, Any]) -> None:

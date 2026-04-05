@@ -16,12 +16,12 @@
 
 ## Phase 2: Circadian Weather Cache
 
-- [ ] [T009] Add `sunrise: datetime | None` and `sunset: datetime | None` fields to `Weather` dataclass in `src/skypulse/models/weather.py`
-- [ ] [T010] Update `parse_weather()` in `src/skypulse/_base.py` to populate `sunrise`/`sunset` from `data["sys"]["sunrise"]` and `data["sys"]["sunset"]`
-- [ ] [T011] Refactor `get_circadian_light()` in `src/skypulse/_client.py` to call `get_current_weather()` internally and extract sunrise/sunset/clouds from the `Weather` object, instead of making a raw `_request()` call
-- [ ] [T012] [P] Refactor `get_circadian_light()` in `src/skypulse/_async_client.py` (mirror of T011)
-- [ ] [T013] Update `tests/test_circadian.py` to verify: calling `get_current_weather()` then `get_circadian_light()` sequentially produces exactly 1 HTTP request to `/data/2.5/weather`
-- [ ] [T014] Update `tests/test_models.py` to cover new `sunrise`/`sunset` fields on `Weather`
+- [x] [T009] Add `sunrise: datetime | None` and `sunset: datetime | None` fields to `Weather` dataclass in `src/skypulse/models/weather.py`
+- [x] [T010] Update `parse_weather()` in `src/skypulse/_base.py` to populate `sunrise`/`sunset` from `data["sys"]["sunrise"]` and `data["sys"]["sunset"]`
+- [x] [T011] Refactor `get_circadian_light()` in `src/skypulse/_client.py` to call `get_current_weather()` internally and extract sunrise/sunset/clouds from the `Weather` object, instead of making a raw `_request()` call
+- [x] [T012] [P] Refactor `get_circadian_light()` in `src/skypulse/_async_client.py` (mirror of T011)
+- [x] [T013] Update `tests/test_circadian.py` to verify: calling `get_current_weather()` then `get_circadian_light()` sequentially produces exactly 1 HTTP request to `/data/2.5/weather`
+- [x] [T014] Update `tests/test_models.py` to cover new `sunrise`/`sunset` fields on `Weather`
 
 ## Phase 3: UV Fetch Deduplication
 

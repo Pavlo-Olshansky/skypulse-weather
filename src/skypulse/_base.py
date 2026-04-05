@@ -17,12 +17,15 @@ from skypulse.models.weather import Condition, Weather, Wind
 
 
 def parse_weather(data: dict[str, Any]) -> Weather:
+    sys = data.get("sys", {})
+    sunrise_ts = sys.get("sunrise")
+    sunset_ts = sys.get("sunset")
     return Weather(
         location=Location(
             name=data["name"],
             latitude=data["coord"]["lat"],
             longitude=data["coord"]["lon"],
-            country=data["sys"]["country"],
+            country=sys.get("country", ""),
         ),
         temperature=data["main"]["temp"],
         feels_like=data["main"]["feels_like"],
@@ -44,6 +47,8 @@ def parse_weather(data: dict[str, Any]) -> Weather:
             icon=data["weather"][0]["icon"],
         ),
         observed_at=datetime.fromtimestamp(data["dt"], tz=timezone.utc),
+        sunrise=datetime.fromtimestamp(sunrise_ts, tz=timezone.utc) if sunrise_ts else None,
+        sunset=datetime.fromtimestamp(sunset_ts, tz=timezone.utc) if sunset_ts else None,
     )
 
 

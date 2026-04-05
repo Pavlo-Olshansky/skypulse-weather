@@ -5,6 +5,7 @@ import respx
 from skypulse import SkyPulseClient, CircadianLight
 from skypulse._circadian import compute_circadian_light, _cloud_reduction_factor, _quality_key
 from skypulse._constants import API_BASE_WEATHER
+from skypulse.models.common import CacheConfig
 from datetime import datetime, timezone
 
 WEATHER_URL = f"{API_BASE_WEATHER}/weather"
@@ -105,4 +106,25 @@ class TestGetCircadianLight:
         assert light.sunrise is not None
         assert light.sunset is not None
         assert light.effective_light_hours > 0
+        client.close()
+
+    @respx.mock
+    def test_weather_then_circadian_single_request(self, api_key: str) -> None:
+        weather = {
+            "coord": {"lat": 50.0, "lon": 30.0},
+            "sys": {"sunrise": 1712293200, "sunset": 1712340000, "country": "UA"},
+            "clouds": {"all": 30},
+            "main": {"temp": 15, "feels_like": 13, "temp_min": 12, "temp_max": 17, "humidity": 60, "pressure": 1013},
+            "wind": {"speed": 3, "deg": 200},
+            "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+            "visibility": 10000, "dt": 1712316000, "name": "Kyiv", "timezone": 7200, "id": 703448, "cod": 200,
+        }
+        route = respx.get(WEATHER_URL).respond(json=weather)
+
+        client = SkyPulseClient(api_key=api_key, cache=CacheConfig(enabled=True))
+        client.get_current_weather(lat=50.0, lon=30.0)
+        light = client.get_circadian_light(lat=50.0, lon=30.0)
+
+        assert route.call_count == 1
+        assert isinstance(light, CircadianLight)
         client.close()
