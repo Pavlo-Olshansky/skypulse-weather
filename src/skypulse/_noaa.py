@@ -40,7 +40,7 @@ class NOAATransport:
         self._kp_cache: _StaleEntry | None = None
         self._forecast_cache: _StaleEntry | None = None
 
-    def fetch_current_kp(self) -> MagneticStorm:
+    def fetch_current_kp(self, language: str = "en") -> MagneticStorm:
         cached = self._kp_cache
         if cached and cached.is_fresh(DEFAULT_STORM_CACHE_TTL):
             return cached.data  # type: ignore[return-value]
@@ -71,11 +71,11 @@ class NOAATransport:
                 raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
             raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
 
-        storm = _parse_current_kp(data)
+        storm = _parse_current_kp(data, language)
         self._kp_cache = _StaleEntry(storm, time.monotonic())
         return storm
 
-    def fetch_forecast(self) -> list[MagneticForecastEntry]:
+    def fetch_forecast(self, language: str = "en") -> list[MagneticForecastEntry]:
         cached = self._forecast_cache
         if cached and cached.is_fresh(DEFAULT_STORM_CACHE_TTL):
             return cached.data  # type: ignore[return-value]
@@ -96,7 +96,7 @@ class NOAATransport:
                 raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
             raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
 
-        entries = _parse_forecast(data)
+        entries = _parse_forecast(data, language)
         self._forecast_cache = _StaleEntry(entries, time.monotonic())
         return entries
 
@@ -109,7 +109,7 @@ class AsyncNOAATransport:
         self._kp_cache: _StaleEntry | None = None
         self._forecast_cache: _StaleEntry | None = None
 
-    async def fetch_current_kp(self) -> MagneticStorm:
+    async def fetch_current_kp(self, language: str = "en") -> MagneticStorm:
         cached = self._kp_cache
         if cached and cached.is_fresh(DEFAULT_STORM_CACHE_TTL):
             return cached.data  # type: ignore[return-value]
@@ -140,11 +140,11 @@ class AsyncNOAATransport:
                 raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
             raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
 
-        storm = _parse_current_kp(data)
+        storm = _parse_current_kp(data, language)
         self._kp_cache = _StaleEntry(storm, time.monotonic())
         return storm
 
-    async def fetch_forecast(self) -> list[MagneticForecastEntry]:
+    async def fetch_forecast(self, language: str = "en") -> list[MagneticForecastEntry]:
         cached = self._forecast_cache
         if cached and cached.is_fresh(DEFAULT_STORM_CACHE_TTL):
             return cached.data  # type: ignore[return-value]
@@ -165,12 +165,12 @@ class AsyncNOAATransport:
                 raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
             raise ServiceUnavailableError("NOAA SWPC", str(exc)) from exc
 
-        entries = _parse_forecast(data)
+        entries = _parse_forecast(data, language)
         self._forecast_cache = _StaleEntry(entries, time.monotonic())
         return entries
 
 
-def _parse_current_kp(data: list[list[str]]) -> MagneticStorm:
+def _parse_current_kp(data: list[list[str]], language: str = "en") -> MagneticStorm:
     try:
         if len(data) < 2:
             raise ValueError("Empty NOAA response")
@@ -182,7 +182,7 @@ def _parse_current_kp(data: list[list[str]]) -> MagneticStorm:
         return MagneticStorm(
             kp_index=kp,
             g_scale=g_scale,
-            severity=g_scale_to_severity(g_scale),
+            severity=g_scale_to_severity(g_scale, language),
             is_storm=is_storm(kp),
             observed_at=observed_at,
             data_age_seconds=int(time.time() - observed_at.timestamp()),
@@ -196,7 +196,7 @@ def _parse_current_kp(data: list[list[str]]) -> MagneticStorm:
         ) from exc
 
 
-def _parse_forecast(data: list[list[str]]) -> list[MagneticForecastEntry]:
+def _parse_forecast(data: list[list[str]], language: str = "en") -> list[MagneticForecastEntry]:
     try:
         if len(data) < 2:
             raise ValueError("Empty NOAA forecast response")
@@ -208,7 +208,7 @@ def _parse_forecast(data: list[list[str]]) -> list[MagneticForecastEntry]:
             entries.append(MagneticForecastEntry(
                 predicted_kp=kp,
                 g_scale=g_scale,
-                severity=g_scale_to_severity(g_scale),
+                severity=g_scale_to_severity(g_scale, language),
                 is_storm=is_storm(kp),
                 period_start=period_start,
                 period_end=period_start + timedelta(hours=3),

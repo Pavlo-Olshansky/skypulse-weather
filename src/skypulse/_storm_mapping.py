@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 from skypulse._constants import HEALTH_DISCLAIMER, STORM_KP_THRESHOLD
+from skypulse._translations import get_label
 from skypulse.models.health import HealthImpact
 
 KP_TO_G_SCALE: dict[int, str] = {
     0: "G0", 1: "G0", 2: "G0", 3: "G0", 4: "G0",
     5: "G1", 6: "G2", 7: "G3", 8: "G4", 9: "G5",
-}
-
-G_SCALE_SEVERITY: dict[str, str] = {
-    "G0": "Quiet",
-    "G1": "Minor storm",
-    "G2": "Moderate storm",
-    "G3": "Strong storm",
-    "G4": "Severe storm",
-    "G5": "Extreme storm",
 }
 
 G_SCALE_HEALTH: dict[str, dict[str, object]] = {
@@ -79,8 +71,8 @@ def kp_to_g_scale(kp: float) -> str:
     return KP_TO_G_SCALE.get(min(int(kp), 9), "G0")
 
 
-def g_scale_to_severity(g_scale: str) -> str:
-    return G_SCALE_SEVERITY.get(g_scale, "Quiet")
+def g_scale_to_severity(g_scale: str, language: str = "en") -> str:
+    return get_label("storm_severity", g_scale, language)
 
 
 def is_storm(kp: float) -> bool:
