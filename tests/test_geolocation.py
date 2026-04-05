@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 import respx
 
-from openweather import Location, OpenWeatherClient, ServiceUnavailableError
-from openweather._constants import DEFAULT_GEOLOCATION_URL
+from skypulse import Location, SkyPulseClient, ServiceUnavailableError
+from skypulse._constants import DEFAULT_GEOLOCATION_URL
 
 
 class TestGetLocation:
@@ -19,7 +19,7 @@ class TestGetLocation:
         }
         respx.get(DEFAULT_GEOLOCATION_URL).respond(json=geo_data)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         loc = client.get_location()
 
         assert isinstance(loc, Location)
@@ -41,7 +41,7 @@ class TestGetLocation:
         }
         respx.get(f"{DEFAULT_GEOLOCATION_URL}8.8.8.8").respond(json=geo_data)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         loc = client.get_location(ip="8.8.8.8")
 
         assert loc.name == "Berlin"
@@ -52,7 +52,7 @@ class TestGetLocation:
     def test_provider_down(self, api_key: str) -> None:
         respx.get(DEFAULT_GEOLOCATION_URL).respond(status_code=503)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ServiceUnavailableError, match="IP Geolocation"):
             client.get_location()
         client.close()
@@ -65,7 +65,7 @@ class TestGetLocation:
             "query": "127.0.0.1",
         })
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ServiceUnavailableError, match="reserved range"):
             client.get_location()
         client.close()
@@ -81,7 +81,7 @@ class TestGetLocation:
         }
         route = respx.get(DEFAULT_GEOLOCATION_URL).respond(json=geo_data)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         client.get_location()
         client.get_location()
         assert route.call_count == 1
@@ -91,7 +91,7 @@ class TestGetLocation:
 class TestAutoLocateOptIn:
     @respx.mock
     def test_no_location_no_auto_locate_raises(self, api_key: str) -> None:
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ValueError, match="No location provided"):
             client.get_current_weather()
         client.close()
@@ -100,7 +100,7 @@ class TestAutoLocateOptIn:
     def test_explicit_location_takes_precedence(self, api_key: str, current_weather_data: dict) -> None:
         respx.get("https://api.openweathermap.org/data/2.5/weather").respond(json=current_weather_data)
 
-        client = OpenWeatherClient(api_key=api_key, auto_locate=True)
+        client = SkyPulseClient(api_key=api_key, auto_locate=True)
         weather = client.get_current_weather(city="Berlin")
         assert weather is not None
         client.close()
@@ -117,7 +117,7 @@ class TestAutoLocateOptIn:
         respx.get(DEFAULT_GEOLOCATION_URL).respond(json=geo_data)
         respx.get("https://api.openweathermap.org/data/2.5/weather").respond(json=current_weather_data)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         weather = client.get_current_weather(auto_locate=True)
         assert weather is not None
         client.close()

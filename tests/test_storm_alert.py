@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 import respx
 
-from openweather import OpenWeatherClient, StormAlert
-from openweather._constants import DEFAULT_GEOLOCATION_URL, NOAA_KP_CURRENT_URL
+from skypulse import SkyPulseClient, StormAlert
+from skypulse._constants import DEFAULT_GEOLOCATION_URL, NOAA_KP_CURRENT_URL
 
 
 def _noaa_response(kp: float, kp_int: str) -> list:
@@ -19,7 +19,7 @@ class TestGetStormAlert:
     def test_high_latitude_full_impact(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=65.0, lon=25.0)
 
         assert isinstance(alert, StormAlert)
@@ -33,7 +33,7 @@ class TestGetStormAlert:
     def test_mid_latitude_reduced_impact(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=50.0, lon=10.0)
 
         assert alert.latitude_zone == "mid"
@@ -45,7 +45,7 @@ class TestGetStormAlert:
     def test_low_latitude_minimal_impact(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=20.0, lon=0.0)
 
         assert alert.latitude_zone == "low"
@@ -57,7 +57,7 @@ class TestGetStormAlert:
     def test_no_storm_all_zones_none(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(3.0, "3"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=65.0, lon=25.0)
 
         assert alert.latitude_zone == "low"
@@ -76,7 +76,7 @@ class TestGetStormAlert:
             "lon": 24.94,
         })
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(auto_locate=True)
 
         assert alert.location_name == "Helsinki"
@@ -85,7 +85,7 @@ class TestGetStormAlert:
 
     @respx.mock
     def test_no_location_no_auto_raises(self, api_key: str) -> None:
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ValueError, match="No location provided"):
             client.get_storm_alert()
         client.close()
@@ -94,7 +94,7 @@ class TestGetStormAlert:
     def test_southern_hemisphere(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=-65.0, lon=-60.0)
 
         assert alert.latitude_zone == "high"
@@ -106,7 +106,7 @@ class TestGetStormAlert:
     def test_g5_extreme(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_noaa_response(9.0, "9"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         alert = client.get_storm_alert(lat=50.0, lon=10.0)
 
         assert alert.latitude_zone == "high"

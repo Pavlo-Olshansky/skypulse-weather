@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from openweather.models.storm import MagneticStorm
+from skypulse.models.storm import MagneticStorm
 
 
 @dataclass(frozen=True)

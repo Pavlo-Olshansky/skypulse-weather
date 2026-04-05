@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from openweather._constants import (
+from skypulse._constants import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_CACHE_MAX_ENTRIES,
     DEFAULT_CACHE_TTL,

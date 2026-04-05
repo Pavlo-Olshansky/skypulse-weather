@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from openweather._constants import API_BASE_GEO, API_BASE_WEATHER
+from skypulse._constants import API_BASE_GEO, API_BASE_WEATHER
 
 
 def _build_params(api_key: str, **kwargs: Any) -> dict[str, Any]:

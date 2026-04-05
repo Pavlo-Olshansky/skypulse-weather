@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from openweather.models.location import Location
-from openweather.models.weather import Condition, Wind
+from skypulse.models.location import Location
+from skypulse.models.weather import Condition, Wind
 
 
 @dataclass(frozen=True)

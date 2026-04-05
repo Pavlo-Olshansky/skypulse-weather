@@ -15,8 +15,8 @@ def _redact_params(params: dict[str, Any] | None, api_key: str | None) -> dict[s
     return {k: "***" if v == api_key else v for k, v in params.items()}
 
 
-class OpenWeatherError(Exception):
-    """Base exception for all OpenWeather client errors.
+class SkyPulseError(Exception):
+    """Base exception for all SkyPulse client errors.
 
     API keys are automatically redacted from messages and representations.
     """
@@ -53,8 +53,8 @@ class OpenWeatherError(Exception):
         return _redact_key(super().__repr__(), self._api_key)
 
 
-class APIError(OpenWeatherError):
-    """Non-2xx response from the OpenWeather API."""
+class APIError(SkyPulseError):
+    """Non-2xx response from the API."""
 
 
 class AuthenticationError(APIError):
@@ -81,11 +81,11 @@ class ServerError(APIError):
     """5xx - OpenWeather server error."""
 
 
-class NetworkError(OpenWeatherError):
+class NetworkError(SkyPulseError):
     """Connection failed - DNS, TCP, TLS errors."""
 
 
-class TimeoutError(OpenWeatherError):
+class TimeoutError(SkyPulseError):
     """Request exceeded configured timeout.
 
     Attributes:
@@ -97,7 +97,7 @@ class TimeoutError(OpenWeatherError):
         self.timeout = timeout
 
 
-class ParseError(OpenWeatherError):
+class ParseError(SkyPulseError):
     """Response body could not be parsed as expected.
 
     Attributes:
@@ -109,7 +109,7 @@ class ParseError(OpenWeatherError):
         self.raw_body = raw_body[:500]
 
 
-class ServiceUnavailableError(OpenWeatherError):
+class ServiceUnavailableError(SkyPulseError):
     """Raised when an external service (NOAA, geolocation) is unreachable."""
 
     def __init__(self, service: str, message: str) -> None:

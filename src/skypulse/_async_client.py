@@ -4,36 +4,36 @@ from typing import Any
 
 import httpx
 
-from openweather._base import _BaseClient, parse_forecast, parse_locations, parse_weather
-from openweather._constants import DEFAULT_GEOLOCATION_URL, DEFAULT_TIMEOUT
-from openweather._endpoints import (
+from skypulse._base import _BaseClient, parse_forecast, parse_locations, parse_weather
+from skypulse._constants import DEFAULT_GEOLOCATION_URL, DEFAULT_TIMEOUT
+from skypulse._endpoints import (
     CURRENT_WEATHER_URL,
     FORECAST_URL,
     GEOCODE_DIRECT_URL,
     GEOCODE_REVERSE_URL,
     build_weather_params,
 )
-from openweather._geolocation import GeoLocationTransport
-from openweather._http import HTTPTransport
-from openweather._noaa import NOAATransport
-from openweather._storm_mapping import (
+from skypulse._geolocation import AsyncGeoLocationTransport
+from skypulse._http import AsyncHTTPTransport
+from skypulse._noaa import AsyncNOAATransport
+from skypulse._storm_mapping import (
     adjust_impact_for_latitude,
     classify_latitude_zone,
     get_health_impact,
 )
-from openweather.models.common import CacheConfig, RetryConfig, Units
-from openweather.models.forecast import Forecast
-from openweather.models.health import HealthImpact, StormAlert
-from openweather.models.location import Location
-from openweather.models.storm import MagneticForecastEntry, MagneticStorm
-from openweather.models.weather import Weather
+from skypulse.models.common import CacheConfig, RetryConfig, Units
+from skypulse.models.forecast import Forecast
+from skypulse.models.health import HealthImpact, StormAlert
+from skypulse.models.location import Location
+from skypulse.models.storm import MagneticForecastEntry, MagneticStorm
+from skypulse.models.weather import Weather
 
 
-class OpenWeatherClient(_BaseClient):
-    """Synchronous client for the OpenWeather API.
+class AsyncSkyPulseClient(_BaseClient):
+    """Asynchronous client for the SkyPulse API.
 
-    Provides methods to fetch current weather, forecasts, and geocoding data.
-    Supports optional response caching and automatic retries.
+    Provides async methods to fetch current weather, forecasts, and geocoding
+    data. Supports optional response caching and automatic retries.
     """
 
     def __init__(
@@ -52,15 +52,15 @@ class OpenWeatherClient(_BaseClient):
             api_key, units=units, language=language, cache=cache, retry=retry,
             auto_locate=auto_locate, geolocation_url=geolocation_url,
         )
-        self._client = httpx.Client(timeout=timeout)
-        self._transport = HTTPTransport(self._client, api_key=self._api_key, retry=self._retry, logger=self._logger)
-        self._noaa = NOAATransport(self._client)
-        self._geo = GeoLocationTransport(self._client, base_url=geolocation_url)
+        self._client = httpx.AsyncClient(timeout=timeout)
+        self._transport = AsyncHTTPTransport(self._client, api_key=self._api_key, retry=self._retry, logger=self._logger)
+        self._noaa = AsyncNOAATransport(self._client)
+        self._geo = AsyncGeoLocationTransport(self._client, base_url=geolocation_url)
 
-    def _request(self, url: str, params: dict[str, Any]) -> Any:
-        return self._transport.request(url, params)
+    async def _request(self, url: str, params: dict[str, Any]) -> Any:
+        return await self._transport.request(url, params)
 
-    def _resolve_auto_locate(
+    async def _resolve_auto_locate(
         self,
         auto_locate: bool | None,
         city: str | None,
@@ -74,13 +74,13 @@ class OpenWeatherClient(_BaseClient):
             return city, city_id, lat, lon, zip_code
         should_auto = auto_locate if auto_locate is not None else self._auto_locate
         if should_auto:
-            loc = self.get_location()
+            loc = await self.get_location()
             return None, None, loc.latitude, loc.longitude, None
         raise ValueError(
             "No location provided. Pass a location parameter or set auto_locate=True."
         )
 
-    def get_current_weather(
+    async def get_current_weather(
         self,
         *,
         city: str | None = None,
@@ -93,7 +93,7 @@ class OpenWeatherClient(_BaseClient):
         skip_cache: bool = False,
         auto_locate: bool | None = None,
     ) -> Weather:
-        city, city_id, lat, lon, zip_code = self._resolve_auto_locate(
+        city, city_id, lat, lon, zip_code = await self._resolve_auto_locate(
             auto_locate, city, city_id, lat, lon, zip_code,
         )
         params = build_weather_params(
@@ -103,11 +103,11 @@ class OpenWeatherClient(_BaseClient):
         key, cached = self._check_cache("weather", params, skip_cache)
         if cached is not None:
             return cached  # type: ignore[return-value]
-        result = parse_weather(self._request(CURRENT_WEATHER_URL, params))
+        result = parse_weather(await self._request(CURRENT_WEATHER_URL, params))
         self._store_cache(key, result)
         return result
 
-    def get_forecast(
+    async def get_forecast(
         self,
         *,
         city: str | None = None,
@@ -121,7 +121,7 @@ class OpenWeatherClient(_BaseClient):
         skip_cache: bool = False,
         auto_locate: bool | None = None,
     ) -> Forecast:
-        city, city_id, lat, lon, zip_code = self._resolve_auto_locate(
+        city, city_id, lat, lon, zip_code = await self._resolve_auto_locate(
             auto_locate, city, city_id, lat, lon, zip_code,
         )
         params = build_weather_params(
@@ -131,11 +131,11 @@ class OpenWeatherClient(_BaseClient):
         key, cached = self._check_cache("forecast", params, skip_cache)
         if cached is not None:
             return cached  # type: ignore[return-value]
-        result = parse_forecast(self._request(FORECAST_URL, params))
+        result = parse_forecast(await self._request(FORECAST_URL, params))
         self._store_cache(key, result)
         return result
 
-    def geocode(self, city: str, *, limit: int = 5) -> list[Location]:
+    async def geocode(self, city: str, *, limit: int = 5) -> list[Location]:
         """Convert a city name to geographic coordinates.
 
         Args:
@@ -146,9 +146,9 @@ class OpenWeatherClient(_BaseClient):
             A list of matching ``Location`` objects.
         """
         params: dict[str, Any] = {"appid": self._api_key, "q": city, "limit": limit}
-        return parse_locations(self._request(GEOCODE_DIRECT_URL, params))
+        return parse_locations(await self._request(GEOCODE_DIRECT_URL, params))
 
-    def reverse_geocode(self, lat: float, lon: float, *, limit: int = 5) -> list[Location]:
+    async def reverse_geocode(self, lat: float, lon: float, *, limit: int = 5) -> list[Location]:
         """Convert geographic coordinates to location names.
 
         Args:
@@ -160,22 +160,22 @@ class OpenWeatherClient(_BaseClient):
             A list of matching ``Location`` objects.
         """
         params: dict[str, Any] = {"appid": self._api_key, "lat": lat, "lon": lon, "limit": limit}
-        return parse_locations(self._request(GEOCODE_REVERSE_URL, params))
+        return parse_locations(await self._request(GEOCODE_REVERSE_URL, params))
 
-    def get_magnetic_storm(self) -> MagneticStorm:
-        return self._noaa.fetch_current_kp()
+    async def get_magnetic_storm(self) -> MagneticStorm:
+        return await self._noaa.fetch_current_kp()
 
-    def get_magnetic_forecast(self) -> list[MagneticForecastEntry]:
-        return self._noaa.fetch_forecast()
+    async def get_magnetic_forecast(self) -> list[MagneticForecastEntry]:
+        return await self._noaa.fetch_forecast()
 
-    def get_storm_health_impact(self) -> HealthImpact:
-        storm = self.get_magnetic_storm()
+    async def get_storm_health_impact(self) -> HealthImpact:
+        storm = await self.get_magnetic_storm()
         return get_health_impact(storm.kp_index, storm.g_scale)
 
-    def get_location(self, ip: str | None = None) -> Location:
-        return self._geo.locate(ip)
+    async def get_location(self, ip: str | None = None) -> Location:
+        return await self._geo.locate(ip)
 
-    def get_storm_alert(
+    async def get_storm_alert(
         self,
         *,
         lat: float | None = None,
@@ -192,9 +192,9 @@ class OpenWeatherClient(_BaseClient):
                 raise ValueError(
                     "No location provided. Pass lat/lon or set auto_locate=True."
                 )
-            location = self.get_location()
+            location = await self.get_location()
 
-        storm = self.get_magnetic_storm()
+        storm = await self.get_magnetic_storm()
         kp_int = min(int(storm.kp_index), 9)
         zone = classify_latitude_zone(abs(location.latitude), kp_int)
         base_impact = get_health_impact(storm.kp_index, storm.g_scale)
@@ -218,12 +218,12 @@ class OpenWeatherClient(_BaseClient):
             latitude_zone=zone,
         )
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the underlying HTTP client and release resources."""
-        self._client.close()
+        await self._client.aclose()
 
-    def __enter__(self) -> OpenWeatherClient:
+    async def __aenter__(self) -> AsyncSkyPulseClient:
         return self
 
-    def __exit__(self, *args: Any) -> None:
-        self.close()
+    async def __aexit__(self, *args: Any) -> None:
+        await self.close()

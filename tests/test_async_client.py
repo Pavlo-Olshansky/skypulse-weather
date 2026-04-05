@@ -9,8 +9,8 @@ import httpx
 import pytest
 import respx
 
-from openweather import AsyncOpenWeatherClient
-from openweather import CacheConfig, RetryConfig
+from skypulse import AsyncSkyPulseClient
+from skypulse import CacheConfig, RetryConfig
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key-abc123"
@@ -30,7 +30,7 @@ async def test_async_get_current_weather() -> None:
     respx.get(WEATHER_URL).mock(
         return_value=httpx.Response(200, json=_load("current_weather.json"))
     )
-    client = AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client = AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
     weather = await client.get_current_weather(city="London")
 
     assert weather.location.name == "London"
@@ -44,7 +44,7 @@ async def test_async_get_forecast() -> None:
     respx.get(FORECAST_URL).mock(
         return_value=httpx.Response(200, json=_load("forecast.json"))
     )
-    client = AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client = AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
     forecast = await client.get_forecast(city="London")
 
     assert forecast.location.name == "London"
@@ -58,7 +58,7 @@ async def test_async_geocode() -> None:
     respx.get(GEO_DIRECT_URL).mock(
         return_value=httpx.Response(200, json=_load("geocoding_direct.json"))
     )
-    client = AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client = AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
     locations = await client.geocode("London")
 
     assert len(locations) == 2
@@ -72,7 +72,7 @@ async def test_async_reverse_geocode() -> None:
     respx.get(GEO_REVERSE_URL).mock(
         return_value=httpx.Response(200, json=_load("geocoding_reverse.json"))
     )
-    client = AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client = AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
     locations = await client.reverse_geocode(lat=51.5085, lon=-0.1257)
 
     assert len(locations) == 1
@@ -86,7 +86,7 @@ async def test_async_context_manager() -> None:
     respx.get(WEATHER_URL).mock(
         return_value=httpx.Response(200, json=_load("current_weather.json"))
     )
-    async with AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False)) as client:
+    async with AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False)) as client:
         weather = await client.get_current_weather(city="London")
         assert weather.location.name == "London"
 
@@ -97,7 +97,7 @@ async def test_async_concurrent_requests() -> None:
     respx.get(WEATHER_URL).mock(
         return_value=httpx.Response(200, json=_load("current_weather.json"))
     )
-    client = AsyncOpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    client = AsyncSkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
 
     results = await asyncio.gather(
         client.get_current_weather(city="London"),
@@ -117,7 +117,7 @@ async def test_async_cache_integration() -> None:
     route = respx.get(WEATHER_URL).mock(
         return_value=httpx.Response(200, json=_load("current_weather.json"))
     )
-    client = AsyncOpenWeatherClient(
+    client = AsyncSkyPulseClient(
         API_KEY,
         cache=CacheConfig(enabled=True, ttl=300),
         retry=RetryConfig(enabled=False),

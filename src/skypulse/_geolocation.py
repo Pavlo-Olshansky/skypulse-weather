@@ -5,14 +5,14 @@ from typing import Any
 
 import httpx
 
-from openweather._constants import (
+from skypulse._constants import (
     DEFAULT_GEO_CACHE_TTL,
     DEFAULT_GEO_STALE_TTL,
     DEFAULT_GEOLOCATION_FIELDS,
     DEFAULT_GEOLOCATION_URL,
 )
-from openweather._errors import ServiceUnavailableError
-from openweather.models.location import Location
+from skypulse._errors import ServiceUnavailableError
+from skypulse.models.location import Location
 
 
 class _StaleEntry:

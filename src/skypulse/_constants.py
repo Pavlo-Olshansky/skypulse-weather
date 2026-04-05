@@ -15,6 +15,7 @@ API_BASE_WEATHER = "https://api.openweathermap.org/data/2.5"
 API_BASE_GEO = "https://api.openweathermap.org/geo/1.0"
 
 ENV_API_KEY = "OPENWEATHER_API_KEY"
+ENV_SKYPULSE_API_KEY = "SKYPULSE_API_KEY"
 
 # NOAA SWPC endpoints
 NOAA_KP_CURRENT_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
@@ -40,3 +41,9 @@ HEALTH_DISCLAIMER = (
     "correlating geomagnetic activity with human health effects. This is not medical "
     "advice. Consult a healthcare professional for personal health concerns."
 )
+
+# Air Pollution API
+API_BASE_AIR_POLLUTION = "https://api.openweathermap.org/data/2.5/air_pollution"
+
+# CurrentUVIndex API
+UV_INDEX_API_URL = "https://currentuvindex.com/api/v1/uvi"

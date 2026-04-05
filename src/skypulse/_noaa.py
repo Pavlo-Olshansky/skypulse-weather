@@ -6,16 +6,16 @@ from typing import Any
 
 import httpx
 
-from openweather._constants import (
+from skypulse._constants import (
     DEFAULT_FORECAST_STALE_TTL,
     DEFAULT_STORM_CACHE_TTL,
     DEFAULT_STORM_STALE_TTL,
     NOAA_KP_CURRENT_URL,
     NOAA_KP_FORECAST_URL,
 )
-from openweather._errors import ParseError, ServiceUnavailableError
-from openweather._storm_mapping import is_storm, kp_to_g_scale
-from openweather.models.storm import MagneticForecastEntry, MagneticStorm
+from skypulse._errors import ParseError, ServiceUnavailableError
+from skypulse._storm_mapping import g_scale_to_severity, is_storm, kp_to_g_scale
+from skypulse.models.storm import MagneticForecastEntry, MagneticStorm
 
 
 class _StaleEntry:
@@ -60,6 +60,7 @@ class NOAATransport:
                 return MagneticStorm(
                     kp_index=stale.kp_index,
                     g_scale=stale.g_scale,
+                    severity=stale.severity,
                     is_storm=stale.is_storm,
                     observed_at=stale.observed_at,
                     data_age_seconds=int(time.time() - stale.observed_at.timestamp()),
@@ -128,6 +129,7 @@ class AsyncNOAATransport:
                 return MagneticStorm(
                     kp_index=stale.kp_index,
                     g_scale=stale.g_scale,
+                    severity=stale.severity,
                     is_storm=stale.is_storm,
                     observed_at=stale.observed_at,
                     data_age_seconds=int(time.time() - stale.observed_at.timestamp()),
@@ -180,6 +182,7 @@ def _parse_current_kp(data: list[list[str]]) -> MagneticStorm:
         return MagneticStorm(
             kp_index=kp,
             g_scale=g_scale,
+            severity=g_scale_to_severity(g_scale),
             is_storm=is_storm(kp),
             observed_at=observed_at,
             data_age_seconds=int(time.time() - observed_at.timestamp()),
@@ -205,6 +208,7 @@ def _parse_forecast(data: list[list[str]]) -> list[MagneticForecastEntry]:
             entries.append(MagneticForecastEntry(
                 predicted_kp=kp,
                 g_scale=g_scale,
+                severity=g_scale_to_severity(g_scale),
                 is_storm=is_storm(kp),
                 period_start=period_start,
                 period_end=period_start + timedelta(hours=3),

@@ -6,14 +6,14 @@ from datetime import timezone
 import pytest
 import respx
 
-from openweather import (
+from skypulse import (
     MagneticForecastEntry,
     MagneticStorm,
-    OpenWeatherClient,
+    SkyPulseClient,
     ParseError,
     ServiceUnavailableError,
 )
-from openweather._constants import NOAA_KP_CURRENT_URL, NOAA_KP_FORECAST_URL
+from skypulse._constants import NOAA_KP_CURRENT_URL, NOAA_KP_FORECAST_URL
 from tests.conftest import load_fixture
 
 
@@ -23,12 +23,13 @@ class TestGetMagneticStorm:
         fixture = load_fixture("noaa_kp_current.json")
         respx.get(NOAA_KP_CURRENT_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         storm = client.get_magnetic_storm()
 
         assert isinstance(storm, MagneticStorm)
         assert storm.kp_index == 7.0
         assert storm.g_scale == "G3"
+        assert storm.severity == "Strong storm"
         assert storm.is_storm is True
         assert storm.stale is False
         assert storm.station_count == 8
@@ -43,11 +44,12 @@ class TestGetMagneticStorm:
         ]
         respx.get(NOAA_KP_CURRENT_URL).respond(json=data)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         storm = client.get_magnetic_storm()
 
         assert storm.kp_index == 2.0
         assert storm.g_scale == "G0"
+        assert storm.severity == "Quiet"
         assert storm.is_storm is False
         client.close()
 
@@ -55,7 +57,7 @@ class TestGetMagneticStorm:
     def test_noaa_down_no_cache(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(status_code=503)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ServiceUnavailableError, match="NOAA SWPC"):
             client.get_magnetic_storm()
         client.close()
@@ -65,7 +67,7 @@ class TestGetMagneticStorm:
         fixture = load_fixture("noaa_kp_current.json")
         respx.get(NOAA_KP_CURRENT_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         storm1 = client.get_magnetic_storm()
         assert storm1.stale is False
 
@@ -82,7 +84,7 @@ class TestGetMagneticStorm:
     def test_parse_error(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=[["header_only"]])
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ParseError):
             client.get_magnetic_storm()
         client.close()
@@ -92,7 +94,7 @@ class TestGetMagneticStorm:
         fixture = load_fixture("noaa_kp_current.json")
         route = respx.get(NOAA_KP_CURRENT_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         client.get_magnetic_storm()
         client.get_magnetic_storm()
         assert route.call_count == 1
@@ -105,7 +107,7 @@ class TestGetMagneticForecast:
         fixture = load_fixture("noaa_kp_forecast.json")
         respx.get(NOAA_KP_FORECAST_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         forecast = client.get_magnetic_forecast()
 
         assert len(forecast) == 4
@@ -113,9 +115,11 @@ class TestGetMagneticForecast:
         assert forecast[0].is_observed is True
         assert forecast[0].predicted_kp == 7.0
         assert forecast[0].g_scale == "G3"
+        assert forecast[0].severity == "Strong storm"
         assert forecast[0].is_storm is True
         assert forecast[1].is_observed is False
         assert forecast[1].predicted_kp == 5.0
+        assert forecast[1].severity == "Minor storm"
         assert forecast[1].is_storm is True
         client.close()
 
@@ -124,7 +128,7 @@ class TestGetMagneticForecast:
         fixture = load_fixture("noaa_kp_forecast.json")
         respx.get(NOAA_KP_FORECAST_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         forecast = client.get_magnetic_forecast()
 
         for i in range(len(forecast) - 1):
@@ -136,7 +140,7 @@ class TestGetMagneticForecast:
         fixture = load_fixture("noaa_kp_forecast.json")
         respx.get(NOAA_KP_FORECAST_URL).respond(json=fixture)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         forecast = client.get_magnetic_forecast()
 
         for entry in forecast:
@@ -148,7 +152,7 @@ class TestGetMagneticForecast:
     def test_noaa_down(self, api_key: str) -> None:
         respx.get(NOAA_KP_FORECAST_URL).respond(status_code=503)
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         with pytest.raises(ServiceUnavailableError, match="NOAA SWPC"):
             client.get_magnetic_forecast()
         client.close()

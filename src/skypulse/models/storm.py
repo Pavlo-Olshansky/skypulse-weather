@@ -10,6 +10,7 @@ class MagneticStorm:
 
     kp_index: float
     g_scale: str
+    severity: str
     is_storm: bool
     observed_at: datetime
     data_age_seconds: int
@@ -23,6 +24,7 @@ class MagneticForecastEntry:
 
     predicted_kp: float
     g_scale: str
+    severity: str
     is_storm: bool
     period_start: datetime
     period_end: datetime

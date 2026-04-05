@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from openweather.models import (
+from skypulse.models import (
     CacheConfig,
     Condition,
     Forecast,

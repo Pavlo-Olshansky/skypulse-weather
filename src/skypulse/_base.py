@@ -4,14 +4,14 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from openweather._constants import DEFAULT_GEOLOCATION_URL, ENV_API_KEY
-from openweather._logging import get_logger
-from openweather._cache import Cache, build_cache_key
-from openweather._errors import OpenWeatherError
-from openweather.models.common import CacheConfig, RetryConfig, Units
-from openweather.models.forecast import Forecast, ForecastEntry
-from openweather.models.location import Location
-from openweather.models.weather import Condition, Weather, Wind
+from skypulse._constants import DEFAULT_GEOLOCATION_URL, ENV_API_KEY, ENV_SKYPULSE_API_KEY
+from skypulse._logging import get_logger
+from skypulse._cache import Cache, build_cache_key
+from skypulse._errors import SkyPulseError
+from skypulse.models.common import CacheConfig, RetryConfig, Units
+from skypulse.models.forecast import Forecast, ForecastEntry
+from skypulse.models.location import Location
+from skypulse.models.weather import Condition, Weather, Wind
 
 
 def parse_weather(data: dict[str, Any]) -> Weather:
@@ -109,10 +109,14 @@ class _BaseClient:
         auto_locate: bool = False,
         geolocation_url: str = DEFAULT_GEOLOCATION_URL,
     ) -> None:
-        resolved_key = api_key or os.environ.get(ENV_API_KEY, "").strip()
+        resolved_key = (
+            api_key
+            or os.environ.get(ENV_SKYPULSE_API_KEY, "").strip()
+            or os.environ.get(ENV_API_KEY, "").strip()
+        )
         if not resolved_key:
-            raise OpenWeatherError(
-                message=f"No API key provided. Pass api_key= or set {ENV_API_KEY} environment variable."
+            raise SkyPulseError(
+                message=f"No API key provided. Pass api_key= or set {ENV_SKYPULSE_API_KEY} environment variable."
             )
         self._api_key = resolved_key
         self._units = units

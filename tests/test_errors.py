@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from openweather._errors import (
+from skypulse._errors import (
     APIError,
     AuthenticationError,
     NetworkError,
     NotFoundError,
-    OpenWeatherError,
+    SkyPulseError,
     ParseError,
     RateLimitError,
     ServerError,
@@ -16,18 +16,18 @@ API_KEY = "secret-key-12345"
 
 
 def test_error_hierarchy() -> None:
-    assert issubclass(APIError, OpenWeatherError)
+    assert issubclass(APIError, SkyPulseError)
     assert issubclass(AuthenticationError, APIError)
     assert issubclass(NotFoundError, APIError)
     assert issubclass(RateLimitError, APIError)
     assert issubclass(ServerError, APIError)
-    assert issubclass(NetworkError, OpenWeatherError)
-    assert issubclass(TimeoutError, OpenWeatherError)
-    assert issubclass(ParseError, OpenWeatherError)
+    assert issubclass(NetworkError, SkyPulseError)
+    assert issubclass(TimeoutError, SkyPulseError)
+    assert issubclass(ParseError, SkyPulseError)
 
 
 def test_api_key_redacted_in_message() -> None:
-    err = OpenWeatherError(
+    err = SkyPulseError(
         message=f"Invalid API key: {API_KEY}",
         api_key=API_KEY,
     )
@@ -36,7 +36,7 @@ def test_api_key_redacted_in_message() -> None:
 
 
 def test_api_key_redacted_in_str() -> None:
-    err = OpenWeatherError(
+    err = SkyPulseError(
         message=f"Error with key {API_KEY}",
         api_key=API_KEY,
     )
@@ -45,7 +45,7 @@ def test_api_key_redacted_in_str() -> None:
 
 
 def test_api_key_redacted_in_repr() -> None:
-    err = OpenWeatherError(
+    err = SkyPulseError(
         message=f"Error with key {API_KEY}",
         api_key=API_KEY,
     )
@@ -53,7 +53,7 @@ def test_api_key_redacted_in_repr() -> None:
 
 
 def test_api_key_redacted_in_params() -> None:
-    err = OpenWeatherError(
+    err = SkyPulseError(
         message="test",
         params={"appid": API_KEY, "q": "London"},
         api_key=API_KEY,

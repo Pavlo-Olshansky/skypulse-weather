@@ -6,8 +6,8 @@ from typing import Any
 
 import httpx
 
-from openweather._logging import get_logger
-from openweather._errors import (
+from skypulse._logging import get_logger
+from skypulse._errors import (
     AuthenticationError,
     NetworkError,
     NotFoundError,
@@ -16,7 +16,7 @@ from openweather._errors import (
     ServerError,
     TimeoutError,
 )
-from openweather.models.common import RetryConfig
+from skypulse.models.common import RetryConfig
 
 _RETRYABLE_STATUS = {429, 500, 502, 503}
 
@@ -67,7 +67,7 @@ def _map_error(
         raise RateLimitError(retry_after=retry_after, **common)
     if status_code >= 500:
         raise ServerError(**common)
-    from openweather._errors import APIError
+    from skypulse._errors import APIError
     raise APIError(**common)
 
 

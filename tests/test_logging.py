@@ -6,9 +6,9 @@ from typing import Any
 import httpx
 import respx
 
-from openweather import OpenWeatherClient
-from openweather import AuthenticationError, OpenWeatherError
-from openweather import RetryConfig
+from skypulse import SkyPulseClient
+from skypulse import AuthenticationError, SkyPulseError
+from skypulse import RetryConfig
 
 API_KEY = "super-secret-key-xyz"
 WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
@@ -30,8 +30,8 @@ def test_api_key_not_in_log_output(caplog: Any) -> None:
             "timezone": 3600, "id": 2643743, "name": "London", "cod": 200
         })
     )
-    with caplog.at_level(logging.DEBUG, logger="openweather"):
-        client = OpenWeatherClient(API_KEY, retry=RetryConfig(enabled=False))
+    with caplog.at_level(logging.DEBUG, logger="skypulse"):
+        client = SkyPulseClient(API_KEY, retry=RetryConfig(enabled=False))
         client.get_current_weather(city="London")
         client.close()
 
@@ -40,7 +40,7 @@ def test_api_key_not_in_log_output(caplog: Any) -> None:
 
 
 def test_api_key_not_in_exception_str() -> None:
-    err = OpenWeatherError(
+    err = SkyPulseError(
         message=f"Failed request with key {API_KEY}",
         params={"appid": API_KEY, "q": "London"},
         api_key=API_KEY,

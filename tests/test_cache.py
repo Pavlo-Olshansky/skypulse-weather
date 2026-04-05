@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import time
 
-from openweather._cache import Cache, build_cache_key
+from skypulse._cache import Cache, build_cache_key
 
 
 def test_cache_get_set() -> None:

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import respx
 
-from openweather import HealthImpact, OpenWeatherClient
-from openweather._constants import HEALTH_DISCLAIMER, NOAA_KP_CURRENT_URL
+from skypulse import HealthImpact, SkyPulseClient
+from skypulse._constants import HEALTH_DISCLAIMER, NOAA_KP_CURRENT_URL
 
 
 def _make_noaa_response(kp: float, kp_int: str = "7") -> list:
@@ -18,7 +18,7 @@ class TestGetStormHealthImpact:
     def test_no_storm_g0(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(2.0, "2"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert isinstance(impact, HealthImpact)
@@ -32,7 +32,7 @@ class TestGetStormHealthImpact:
     def test_g1_low(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(5.0, "5"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.level == "low"
@@ -44,7 +44,7 @@ class TestGetStormHealthImpact:
     def test_g2_moderate(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(6.0, "6"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.level == "moderate"
@@ -57,7 +57,7 @@ class TestGetStormHealthImpact:
     def test_g3_high(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.level == "high"
@@ -69,7 +69,7 @@ class TestGetStormHealthImpact:
     def test_g4_severe(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(8.0, "8"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.level == "severe"
@@ -80,7 +80,7 @@ class TestGetStormHealthImpact:
     def test_g5_severe(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(9.0, "9"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.level == "severe"
@@ -91,7 +91,7 @@ class TestGetStormHealthImpact:
     def test_disclaimer_always_present(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(3.0, "3"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.disclaimer
@@ -102,7 +102,7 @@ class TestGetStormHealthImpact:
     def test_kp_and_g_scale_preserved(self, api_key: str) -> None:
         respx.get(NOAA_KP_CURRENT_URL).respond(json=_make_noaa_response(7.0, "7"))
 
-        client = OpenWeatherClient(api_key=api_key)
+        client = SkyPulseClient(api_key=api_key)
         impact = client.get_storm_health_impact()
 
         assert impact.kp_index == 7.0

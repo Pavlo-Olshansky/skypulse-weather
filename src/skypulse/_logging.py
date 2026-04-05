@@ -20,7 +20,7 @@ class APIKeyRedactingFilter(logging.Filter):
 
 
 def get_logger(api_key: str | None = None) -> logging.Logger:
-    logger = logging.getLogger("openweather")
+    logger = logging.getLogger("skypulse")
     if api_key:
         logger.addFilter(APIKeyRedactingFilter(api_key))
     return logger
