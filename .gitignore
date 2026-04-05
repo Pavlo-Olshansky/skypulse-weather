@@ -13,4 +13,5 @@ htmlcov/
 .coverage
 *.log
 .env*
+Makefile
 .DS_Store
