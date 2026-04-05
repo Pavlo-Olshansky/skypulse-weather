@@ -107,3 +107,11 @@ class ParseError(OpenWeatherError):
     def __init__(self, raw_body: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.raw_body = raw_body[:500]
+
+
+class ServiceUnavailableError(OpenWeatherError):
+    """Raised when an external service (NOAA, geolocation) is unreachable."""
+
+    def __init__(self, service: str, message: str) -> None:
+        self.service = service
+        super().__init__(message=f"{service} unavailable: {message}")
