@@ -24,6 +24,12 @@ Weather, space weather, and how they affect you — Python SDK with sync/async s
 - **Retry with backoff** — automatic retry on 5xx and 429 with exponential backoff
 - **API key redaction** — keys never appear in logs, exceptions, or repr output
 
+## Real-World Usage
+
+SkyPulse powers the weather dashboard in [Aura Medical](https://github.com/Pavlo-Olshansky/aura-medical) — a personal medical records tracker. The integration uses all SDK features: current weather, forecasts, UV index, circadian light, air quality, and geomagnetic storm monitoring.
+
+![Weather dashboard in Aura Medical](docs/weather.png)
+
 ## Installation
 
 ```bash
