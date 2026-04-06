@@ -2,6 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/skypulse-weather)](https://pypi.org/project/skypulse-weather/)
 [![Python 3.9-3.14](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/skypulse-weather/)
+[![Changelog](https://img.shields.io/badge/changelog-releases-blue)](https://github.com/Pavlo-Olshansky/skypulse-weather/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Weather, space weather, and how they affect you — Python SDK with sync/async support, LRU caching, and typed responses.
