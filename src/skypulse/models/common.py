@@ -10,6 +10,8 @@ from skypulse._constants import (
     DEFAULT_GEO_CACHE_MAX_ENTRIES,
     DEFAULT_GEO_CACHE_TTL_CONFIG,
     DEFAULT_MAX_RETRIES,
+    DEFAULT_OWM_DAILY_LIMIT,
+    DEFAULT_UV_DAILY_LIMIT,
 )
 
 
@@ -40,6 +42,8 @@ class CacheConfig:
     max_entries: int = DEFAULT_CACHE_MAX_ENTRIES
     geo_cache_ttl: int = DEFAULT_GEO_CACHE_TTL_CONFIG
     geo_cache_max_entries: int = DEFAULT_GEO_CACHE_MAX_ENTRIES
+    owm_daily_limit: int = DEFAULT_OWM_DAILY_LIMIT
+    uv_daily_limit: int = DEFAULT_UV_DAILY_LIMIT
 
 
 @dataclass
