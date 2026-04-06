@@ -115,7 +115,7 @@ class SkyPulseClient(_BaseClient):
         if cached is not None:
             return cached  # type: ignore[return-value]
         result = parse_weather(self._request(CURRENT_WEATHER_URL, params))
-        self._store_cache(key, result)
+        self._store_cache(key, result, provider="owm")
         return result
 
     def get_forecast(
@@ -143,7 +143,7 @@ class SkyPulseClient(_BaseClient):
         if cached is not None:
             return cached  # type: ignore[return-value]
         result = parse_forecast(self._request(FORECAST_URL, params))
-        self._store_cache(key, result)
+        self._store_cache(key, result, provider="owm")
         return result
 
     def geocode(self, city: str, *, limit: int = 5) -> list[Location]:
@@ -279,7 +279,7 @@ class SkyPulseClient(_BaseClient):
             return cached  # type: ignore[return-value]
         data = self._request(AIR_POLLUTION_URL, params)
         result = _parse_air_quality(data, self._language)
-        self._store_cache(key, result)
+        self._store_cache(key, result, provider="owm")
         return result
 
     def get_air_quality_forecast(
@@ -298,7 +298,7 @@ class SkyPulseClient(_BaseClient):
             return cached  # type: ignore[return-value]
         data = self._request(AIR_POLLUTION_FORECAST_URL, params)
         result = _parse_air_quality_forecast(data, self._language)
-        self._store_cache(key, result)
+        self._store_cache(key, result, provider="owm")
         return result
 
     def get_uv_index(

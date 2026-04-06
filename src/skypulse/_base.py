@@ -10,6 +10,7 @@ from cachetools import TTLCache
 
 from skypulse._cache import Cache, build_cache_key
 from skypulse._errors import SkyPulseError
+from skypulse._usage import UsageTracker
 from skypulse.models.common import CacheConfig, RetryConfig, Units
 from skypulse.models.forecast import Forecast, ForecastEntry
 from skypulse.models.location import Location
@@ -102,6 +103,14 @@ def parse_locations(data: list[dict[str, Any]]) -> list[Location]:
     ]
 
 
+CACHE_PREFIX_TO_PROVIDER: dict[str, str] = {
+    "weather": "owm",
+    "forecast": "owm",
+    "aq": "owm",
+    "aq_forecast": "owm",
+}
+
+
 class _BaseClient:
     """Shared configuration, cache, and parsing for sync/async clients."""
 
@@ -130,6 +139,10 @@ class _BaseClient:
         self._language = language
         self._cache: Cache | None = None
         self._geo_cache: TTLCache[str, Any] | None = None
+        self._usage = UsageTracker({
+            "owm": cache.owm_daily_limit if cache else 1000,
+            "uv": cache.uv_daily_limit if cache else 500,
+        })
         if cache and cache.enabled:
             self._cache = Cache(max_entries=cache.max_entries, default_ttl=cache.ttl)
             self._geo_cache = TTLCache(
@@ -144,15 +157,19 @@ class _BaseClient:
         """Build cache key and check for a hit. Returns (key, cached_value_or_None)."""
         key = build_cache_key(cache_prefix, **{k: v for k, v in params.items() if k != "appid"})
         if self._cache and not skip_cache:
-            cached = self._cache.get(key)
+            provider = CACHE_PREFIX_TO_PROVIDER.get(cache_prefix)
+            ttl = self._usage.effective_ttl(provider, self._cache._default_ttl) if provider else None
+            cached = self._cache.get(key, ttl=ttl)
             if cached is not None:
                 self._logger.debug("Cache hit: %s", key)
                 return key, cached
         return key, None
 
-    def _store_cache(self, key: str, result: Any) -> None:
+    def _store_cache(self, key: str, result: Any, provider: str | None = None) -> None:
         if self._cache:
             self._cache.set(key, result)
+        if provider:
+            self._usage.record(provider)
 
     def _check_geo_cache(self, key: str) -> Any | None:
         if self._geo_cache is not None:

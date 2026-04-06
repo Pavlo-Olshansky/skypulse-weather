@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import threading
+import time
 from typing import Any
 
-from cachetools import TTLCache
+from cachetools import LRUCache
 
 
 def build_cache_key(endpoint: str, **params: Any) -> str:
@@ -24,21 +25,28 @@ def build_cache_key(endpoint: str, **params: Any) -> str:
 
 
 class Cache:
-    """Thread-safe TTL cache with LRU eviction, backed by ``cachetools.TTLCache``."""
+    """Thread-safe LRU cache with adaptive TTL support, backed by ``cachetools.LRUCache``."""
 
     def __init__(self, max_entries: int = 128, default_ttl: int = 300) -> None:
         self._default_ttl = default_ttl
-        self._store: TTLCache[str, Any] = TTLCache(maxsize=max_entries, ttl=default_ttl)
+        self._store: LRUCache[str, tuple[float, Any]] = LRUCache(maxsize=max_entries)
         self._lock = threading.Lock()
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str, ttl: int | None = None) -> Any | None:
         with self._lock:
-            return self._store.get(key)
+            entry = self._store.get(key)
+            if entry is None:
+                return None
+            stored_at, value = entry
+            effective = ttl if ttl is not None else self._default_ttl
+            if (time.monotonic() - stored_at) >= effective:
+                return None
+            return value
 
     def set(self, key: str, value: Any) -> None:
         """Store a value, evicting the least-recently-used entry if full."""
         with self._lock:
-            self._store[key] = value
+            self._store[key] = (time.monotonic(), value)
 
     def invalidate(self, key: str) -> bool:
         with self._lock:

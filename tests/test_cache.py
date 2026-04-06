@@ -118,6 +118,29 @@ def test_cache_thread_safety() -> None:
     assert len(errors) == 0
 
 
+def test_cache_get_with_custom_ttl() -> None:
+    cache = Cache(max_entries=10, default_ttl=1)
+    cache.set("key1", "value1")
+    time.sleep(1.1)
+    # Default TTL expired
+    assert cache.get("key1") is None
+    # But with a longer TTL override, it's still fresh
+    cache.set("key2", "value2")
+    time.sleep(1.1)
+    assert cache.get("key2", ttl=60) == "value2"
+
+
+def test_cache_size_includes_expired() -> None:
+    cache = Cache(max_entries=10, default_ttl=1)
+    cache.set("a", 1)
+    cache.set("b", 2)
+    time.sleep(1.1)
+    # Entries are logically expired but still in LRU store
+    assert cache.size == 2
+    # get returns None for expired entries
+    assert cache.get("a") is None
+
+
 def test_cache_performance_10x() -> None:
     cache = Cache(max_entries=128, default_ttl=60)
     cache.set("perf_key", {"temp": 15.2, "city": "London"})

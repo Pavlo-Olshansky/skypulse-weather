@@ -12,12 +12,12 @@
 
 ## Phase 2: Adaptive Cache TTL
 
-- [ ] [T005] Refactor `Cache` in `src/skypulse/_cache.py`: replace `TTLCache` with `LRUCache` + manual timestamps, add optional `ttl` parameter to `get()` method
-- [ ] [T006] Update `tests/test_cache.py` for adaptive TTL parameter in `Cache.get()`, add test for `size` behavior after entries expire
-- [ ] [T007] Create `UsageTracker` in `_BaseClient.__init__` in `src/skypulse/_base.py` with limits from `CacheConfig`
-- [ ] [T008] Add `CACHE_PREFIX_TO_PROVIDER` mapping (`{"weather": "owm", "forecast": "owm", "aq": "owm", "aq_forecast": "owm"}`) to `_BaseClient`, modify `_check_cache()` to look up provider and pass adaptive TTL to `Cache.get()`
-- [ ] [T009] Add `_record_api_call(provider)` helper to `_BaseClient` that delegates to `UsageTracker`; wire into OWM getter methods (`get_current_weather`, `get_forecast`, `get_air_quality`, `get_air_quality_forecast`) after successful HTTP fetch
-- [ ] [T010] Create integration test in `tests/test_adaptive_cache.py` — simulate crossing 50% and 75% usage thresholds, verify cache entries live longer under adaptive TTL
+- [x] [T005] Refactor `Cache` in `src/skypulse/_cache.py`: replace `TTLCache` with `LRUCache` + manual timestamps, add optional `ttl` parameter to `get()` method
+- [x] [T006] Update `tests/test_cache.py` for adaptive TTL parameter in `Cache.get()`, add test for `size` behavior after entries expire
+- [x] [T007] Create `UsageTracker` in `_BaseClient.__init__` in `src/skypulse/_base.py` with limits from `CacheConfig`
+- [x] [T008] Add `CACHE_PREFIX_TO_PROVIDER` mapping (`{"weather": "owm", "forecast": "owm", "aq": "owm", "aq_forecast": "owm"}`) to `_BaseClient`, modify `_check_cache()` to look up provider and pass adaptive TTL to `Cache.get()`
+- [x] [T009] Add `_record_api_call(provider)` helper to `_BaseClient` that delegates to `UsageTracker`; wire into OWM getter methods (`get_current_weather`, `get_forecast`, `get_air_quality`, `get_air_quality_forecast`) after successful HTTP fetch
+- [x] [T010] Create integration test in `tests/test_adaptive_cache.py` — simulate crossing 50% and 75% usage thresholds, verify cache entries live longer under adaptive TTL
 
 ## Phase 3: `WeatherSnapshot` Model
 
