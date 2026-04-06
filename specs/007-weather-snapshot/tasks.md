@@ -38,12 +38,12 @@
 
 ## Phase 6: Polish
 
-- [ ] [T019] Run full test suite (`pytest`) — all existing + new tests pass
-- [ ] [T020] Run `ruff check src/` and fix any linting issues
-- [ ] [T021] Run `mypy src/skypulse` and fix any type errors
-- [ ] [T022] Update `README.md` with `prefetch()` usage example and adaptive cache docs
-- [ ] [T023] Update `CHANGELOG.md` with new version entry
-- [ ] [T024] Bump version in `pyproject.toml`
+- [x] [T019] Run full test suite (`pytest`) — all existing + new tests pass
+- [x] [T020] Run `ruff check src/` and fix any linting issues
+- [x] [T021] Run `mypy src/skypulse` and fix any type errors
+- [x] [T022] Update `README.md` with `prefetch()` usage example and adaptive cache docs
+- [x] [T023] Update `CHANGELOG.md` with new version entry
+- [x] [T024] Bump version in `pyproject.toml`
 
 ## Dependency Graph
 

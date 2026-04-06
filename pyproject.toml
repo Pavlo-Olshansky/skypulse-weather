@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skypulse-weather"
-version = "2.0.2"
+version = "2.1.0"
 description = "Weather, space weather, and how they affect you — Python SDK with sync/async support, caching, and typed responses."
 readme = "README.md"
 license = "MIT"

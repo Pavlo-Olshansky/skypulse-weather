@@ -429,7 +429,36 @@ weather3 = client.get_current_weather(city="Rome", skip_cache=True)
 
 Geocode results (city-to-coordinates) are cached separately with a longer TTL since coordinates rarely change. When caching is enabled, `get_circadian_light()` reuses cached weather data from `get_current_weather()`, and concurrent async UV requests are deduplicated automatically.
 
+**Adaptive TTL:** Cache TTL automatically scales based on your daily API usage — fresh data when quota is plentiful, longer caching when nearing limits:
+
+| Usage | Cache TTL |
+|-------|-----------|
+| <50% | Base TTL (default 5 min) |
+| 50-75% | 30 min |
+| >75% | 1 hour |
+
+Configure your daily limits via `CacheConfig(owm_daily_limit=1000, uv_daily_limit=500)`.
+
 Storm and geolocation data use separate caches with stale-while-revalidate fallback — if the external service is temporarily unavailable, the SDK returns the last known data with a `stale=True` flag.
+
+### Prefetch
+
+Fetch all weather data for a location in one call:
+
+```python
+from skypulse import AsyncSkyPulseClient, CacheConfig
+
+async with AsyncSkyPulseClient(api_key="key", cache=CacheConfig()) as client:
+    snapshot = await client.prefetch(lat=50.45, lon=30.52)
+    print(snapshot.weather.temperature)
+    print(snapshot.uv.value)
+    print(snapshot.circadian.quality)
+
+    # Individual calls after prefetch are cache hits
+    weather = await client.get_current_weather(lat=50.45, lon=30.52)  # instant
+```
+
+The `WeatherSnapshot` contains all data: weather, forecast, air quality, UV, circadian, magnetic storms. Partial failures (e.g., UV API down) return `None` for that field with error details in `snapshot.errors`.
 
 ### Retry
 

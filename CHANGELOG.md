@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-04-06
+
+### Added
+- `prefetch()` method on both sync and async clients — fetches all weather data in one parallel batch
+- `WeatherSnapshot` composite model with all weather data, partial failure handling, and error tracking
+- Adaptive cache TTL that scales with API quota usage (<50%: base TTL, 50-75%: 30min, >75%: 1hr)
+- `UsageTracker` for per-provider daily API call counting with midnight UTC reset
+- New `CacheConfig` fields: `owm_daily_limit`, `uv_daily_limit`
+
+### Changed
+- Cache internals refactored from `TTLCache` to `LRUCache` with manual timestamp tracking to support adaptive TTL
+- Individual getters now record API calls for usage tracking
+
 ## [2.0.2] - 2026-04-05
 
 - Includes CHANGELOG.md in the published package (missing from 2.0.1)
