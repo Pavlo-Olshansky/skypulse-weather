@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+import asyncio
+from datetime import datetime, timezone
+from typing import Any, Tuple
 
 import httpx
 
@@ -35,9 +37,17 @@ from skypulse.models.common import CacheConfig, RetryConfig, Units
 from skypulse.models.forecast import Forecast
 from skypulse.models.health import HealthImpact, StormAlert
 from skypulse.models.location import Location
+from skypulse.models.snapshot import WeatherSnapshot
 from skypulse.models.storm import MagneticForecastEntry, MagneticStorm
 from skypulse.models.uv import UVForecastEntry, UVIndex
 from skypulse.models.weather import Weather
+
+
+async def _safe_fetch(coro: Any) -> Tuple[Any, Exception | None]:
+    try:
+        return (await coro, None)
+    except Exception as exc:
+        return (None, exc)
 
 
 class AsyncSkyPulseClient(_BaseClient):
@@ -342,6 +352,67 @@ class AsyncSkyPulseClient(_BaseClient):
             latitude=rlat,
             now=datetime.now(tz=timezone.utc),
             language=self._language,
+        )
+
+    async def prefetch(
+        self,
+        *,
+        city: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        auto_locate: bool | None = None,
+        skip_cache: bool = False,
+    ) -> WeatherSnapshot:
+        """Fetch all weather data for a location in one parallel batch."""
+        rlat, rlon = await self._resolve_coords(city, lat, lon, auto_locate)
+
+        results = await asyncio.gather(
+            _safe_fetch(self.get_current_weather(lat=rlat, lon=rlon, skip_cache=skip_cache)),
+            _safe_fetch(self.get_forecast(lat=rlat, lon=rlon, skip_cache=skip_cache)),
+            _safe_fetch(self.get_air_quality(lat=rlat, lon=rlon, skip_cache=skip_cache)),
+            _safe_fetch(self.get_air_quality_forecast(lat=rlat, lon=rlon, skip_cache=skip_cache)),
+            _safe_fetch(self.get_uv_index(lat=rlat, lon=rlon)),
+            _safe_fetch(self.get_uv_forecast(lat=rlat, lon=rlon)),
+            _safe_fetch(self.get_magnetic_storm()),
+            _safe_fetch(self.get_magnetic_forecast()),
+        )
+
+        names = [
+            "weather", "forecast", "air_quality", "air_quality_forecast",
+            "uv", "uv_forecast", "magnetic_storm", "magnetic_forecast",
+        ]
+        values = [r[0] for r in results]
+        errors = {name: str(r[1]) for name, r in zip(names, results) if r[1] is not None}
+        weather, forecast, aq, aq_fc, uv, uv_fc, storm, storm_fc = values
+
+        circadian = None
+        if weather:
+            circadian = compute_circadian_light(
+                sunrise_ts=int(weather.sunrise.timestamp()) if weather.sunrise else 0,
+                sunset_ts=int(weather.sunset.timestamp()) if weather.sunset else 0,
+                cloud_cover=weather.clouds,
+                latitude=rlat,
+                now=datetime.now(tz=timezone.utc),
+                language=self._language,
+            )
+
+        location = weather.location if weather else Location(
+            name=city or "", latitude=rlat, longitude=rlon, country="",
+        )
+
+        return WeatherSnapshot(
+            weather=weather,
+            forecast=forecast,
+            air_quality=aq,
+            air_quality_forecast=aq_fc or [],
+            uv=uv,
+            uv_forecast=uv_fc or [],
+            circadian=circadian,
+            magnetic_storm=storm,
+            magnetic_forecast=storm_fc or [],
+            location=location,
+            fetched_at=datetime.now(tz=timezone.utc),
+            errors=errors,
         )
 
     async def close(self) -> None:

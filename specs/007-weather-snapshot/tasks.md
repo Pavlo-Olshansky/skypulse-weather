@@ -21,20 +21,20 @@
 
 ## Phase 3: `WeatherSnapshot` Model
 
-- [ ] [T011] Create `src/skypulse/models/snapshot.py` with `WeatherSnapshot` dataclass (fields: weather, forecast, air_quality, air_quality_forecast, uv, uv_forecast, circadian, magnetic_storm, magnetic_forecast, location, fetched_at, errors)
-- [ ] [T012] Export `WeatherSnapshot` from `src/skypulse/models/__init__.py` and `src/skypulse/__init__.py`
+- [x] [T011] Create `src/skypulse/models/snapshot.py` with `WeatherSnapshot` dataclass (fields: weather, forecast, air_quality, air_quality_forecast, uv, uv_forecast, circadian, magnetic_storm, magnetic_forecast, location, fetched_at, errors)
+- [x] [T012] Export `WeatherSnapshot` from `src/skypulse/models/__init__.py` and `src/skypulse/__init__.py`
 
 ## Phase 4: Async `prefetch()` Method
 
-- [ ] [T013] Add module-level `_safe_fetch()` async function in `src/skypulse/_async_client.py` — returns `tuple[Any, Exception | None]`
-- [ ] [T014] Add `prefetch()` to `AsyncSkyPulseClient` in `src/skypulse/_async_client.py` — resolve coords, fire all getters via `asyncio.gather` with `_safe_fetch`, compute circadian from weather result (None if weather fails), record API calls at client level, build `WeatherSnapshot`
-- [ ] [T015] Create `tests/test_prefetch.py` — test: exactly 7 HTTP calls (4 OWM + 1 UV via dedup lock + 2 NOAA), snapshot fields populated, partial failure (UV down) returns None + error in errors dict, individual OWM getter after prefetch is cache hit, circadian is None when weather fails
+- [x] [T013] Add module-level `_safe_fetch()` async function in `src/skypulse/_async_client.py` — returns `tuple[Any, Exception | None]`
+- [x] [T014] Add `prefetch()` to `AsyncSkyPulseClient` in `src/skypulse/_async_client.py` — resolve coords, fire all getters via `asyncio.gather` with `_safe_fetch`, compute circadian from weather result (None if weather fails), record API calls at client level, build `WeatherSnapshot`
+- [x] [T015] Create `tests/test_prefetch.py` — test: exactly 7 HTTP calls (4 OWM + 1 UV via dedup lock + 2 NOAA), snapshot fields populated, partial failure (UV down) returns None + error in errors dict, individual OWM getter after prefetch is cache hit, circadian is None when weather fails
 
 ## Phase 5: Sync `prefetch()` Method
 
-- [ ] [T016] Add module-level `_safe_fetch_sync()` function in `src/skypulse/_client.py`
-- [ ] [T017] Add `prefetch()` to `SkyPulseClient` in `src/skypulse/_client.py` — sequential calls, same circadian computation, same error handling, same API call recording
-- [ ] [T018] Add sync prefetch tests to `tests/test_prefetch.py`
+- [x] [T016] Add module-level `_safe_fetch_sync()` function in `src/skypulse/_client.py`
+- [x] [T017] Add `prefetch()` to `SkyPulseClient` in `src/skypulse/_client.py` — sequential calls, same circadian computation, same error handling, same API call recording
+- [x] [T018] Add sync prefetch tests to `tests/test_prefetch.py`
 
 ## Phase 6: Polish
 
