@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from skypulse._constants import API_BASE_AIR_POLLUTION, API_BASE_GEO, API_BASE_WEATHER
@@ -35,6 +36,13 @@ def build_location_params(
     )
     if lat is not None and lon is None or lon is not None and lat is None:
         raise ValueError("Both lat and lon must be provided together.")
+    if lat is not None and lon is not None:
+        if not math.isfinite(lat) or not math.isfinite(lon):
+            raise ValueError("lat and lon must be finite numbers (no NaN or infinity).")
+        if not (-90 <= lat <= 90):
+            raise ValueError(f"lat must be between -90 and 90, got {lat}.")
+        if not (-180 <= lon <= 180):
+            raise ValueError(f"lon must be between -180 and 180, got {lon}.")
     if provided == 0:
         raise ValueError(
             "Exactly one location parameter required: city, city_id, lat+lon, or zip_code."
