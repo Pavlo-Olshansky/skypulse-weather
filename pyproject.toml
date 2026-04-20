@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skypulse-weather"
-version = "2.1.0"
+dynamic = ["version"]
 description = "Weather, space weather, and how they affect you — Python SDK with sync/async support, caching, and typed responses."
 readme = "README.md"
 license = "MIT"
@@ -43,6 +43,9 @@ dev = [
 Homepage = "https://github.com/Pavlo-Olshansky/skypulse-weather"
 Repository = "https://github.com/Pavlo-Olshansky/skypulse-weather"
 Issues = "https://github.com/Pavlo-Olshansky/skypulse-weather/issues"
+
+[tool.hatch.version]
+path = "src/skypulse/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/skypulse"]
