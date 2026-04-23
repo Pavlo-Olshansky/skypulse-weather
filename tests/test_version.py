@@ -13,4 +13,4 @@ def test_version_is_semver():
 
 
 def test_version_matches_expected():
-    assert skypulse.__version__ == "2.1.0"
+    assert skypulse.__version__ == "2.1.2"

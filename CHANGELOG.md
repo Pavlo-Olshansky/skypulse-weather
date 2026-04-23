@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2026-04-23
+
+### Fixed
+- Version mismatch: `_version.py` now matches `pyproject.toml` (was stuck at 1.0.0)
+- `pyproject.toml` uses dynamic versioning via hatchling — single source of truth in `_version.py`
+- `build_location_params()` now validates coordinate ranges (lat: -90..90, lon: -180..180) and rejects NaN/infinity
+
+### Added
+- Regression test ensuring all source files using `|` union syntax have `from __future__ import annotations` (Python 3.9 safety)
+- Tests for version string and coordinate validation
+
 ## [2.1.0] - 2026-04-06
 
 ### Added
